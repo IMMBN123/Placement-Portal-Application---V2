@@ -1,0 +1,247 @@
+.box{
+    background-color:cadetblue;
+    color: white;
+    border-radius: 12px; 
+    box-shadow: 50cm; 
+    display: flex;
+    justify-content: space-between; 
+    align-items: center; 
+    height: 50px;
+    padding: 18px 25px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+body{
+    background-color: #f4f7f8;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.container{
+    width: 90%;
+    margin: 30px auto;
+}
+
+.card{
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px #5f8f8f;
+    margin-bottom: 30px;
+}
+
+.card-chart{
+    background: #a3b0b5;
+}
+
+button{
+    color: white;
+    padding: 8px 14px;
+    border-radius: 8px; 
+    background-color: #ff7f7f;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    margin-bottom: 2.5px;
+    margin-top: 2.5px;
+}
+
+button:hover{
+    transform: translateY(-2px);
+}
+
+.btn-danger{
+    background-color: #ff6b6b;
+    color: white;
+}
+
+.btn-danger:hover{
+    background-color: #ff4d4d;
+}
+
+.btn-green{
+    background-color: lightgreen;
+    color: white;
+}
+
+table{
+    width: 100%; 
+    border-collapse: collapse; 
+    margin-top: 15px;
+    border: 1cm;
+    border-color: cadetblue;
+}
+
+table th{
+    background-color: cadetblue;
+    color: white;
+    border-color: white;
+}
+
+tr{
+    border-bottom: 1px solid #e0e0e0;
+    border-radius: 12px;
+}
+
+th, td {
+    padding: 14px 16px;
+    text-align: left;
+}
+
+tr:hover{
+    background-color: #f1fafa;
+}
+
+/* Container spacing */
+.alert-container {
+    margin: 25px 0;
+}
+
+/* Base Alert Box */
+.alert {
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 14px;
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    border-left: 6px solid;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Hover effect (clean subtle interaction) */
+.alert:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(0,0,0,0.12);
+}
+
+/* Content layout */
+.alert-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Icon style */
+.alert-icon {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+/* Success */
+.alert-success {
+    background: #eafaf1;
+    border-color: #28a745;
+    color: #155724;
+}
+
+/* Error */
+.alert-error {
+    background: #fdecea;
+    border-color: #dc3545;
+    color: #721c24;
+}
+
+/* Warning */
+.alert-warning {
+    background: #fff8e6;
+    border-color: #ffc107;
+    color: #856404;
+}
+
+/* Info */
+.alert-info {
+    background: #e7f3fe;
+    border-color: #007bff;
+    color: #084298;
+}
+
+label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #2c3e50;
+    font-size: 15px;
+    letter-spacing: 0.3px;
+    align-content: center;
+}
+
+input,
+textarea {
+    width: 300px;
+    padding: 10px 12px;
+    border: 1.5px solid lightgray;
+    border-radius: 8px;
+    font-size: 14px;
+    outline:#2c3e50;
+    transition: all 0.25s ease;
+    background-color: #ffffff;
+    align-content: center;
+    margin-top: 13px;
+}
+
+textarea {
+    min-height: 90px;
+    resize: vertical;
+}
+
+input:focus,
+textarea:focus {
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.15);
+}
+
+input,
+textarea {
+    margin-bottom: 20px;
+}
+
+input[type="date"] {
+    padding-right: 8px;
+}
+
+select {
+    width: 100px;
+    padding: 10px 12px;
+    border: 1.5px solid #d0d7de;
+    border-radius: 8px;
+    font-size: 14px;
+    background-color: #ffffff;
+    color: #2f3e46;
+    cursor: pointer;
+    outline: none;
+    transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+select:focus {
+    border-color: #5c9ead;
+    box-shadow: 0 0 0 3px rgba(92, 158, 173, 0.15);
+}
+
+.search-container {
+    position: relative;
+}
+
+.search-input {
+    height: 50px;
+    border-radius: 30px;
+    padding-left: 35px;
+    border: none;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.search-icon {
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    transform: translateY(-50%);
+    color: #888;
+}
