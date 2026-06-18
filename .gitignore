@@ -1,0 +1,6 @@
+venv/
+app/.env
+instance/*.db
+photos/
+static/uploads/*
+!static/uploads/.gitkeep
