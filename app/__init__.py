@@ -1,7 +1,6 @@
 from flask import Flask, jsonify, render_template
 from flask_login import LoginManager
 from config import Config
-# Adjusted imports to work within the 'app' module
 from app.models import db, user 
 import os
 from dotenv import load_dotenv
