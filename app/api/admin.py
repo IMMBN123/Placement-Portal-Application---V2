@@ -562,21 +562,4 @@ def global_search():
         "applications_by_blacklisted_students": [a.to_dict() for a in applications_by_blacklisted_students],
     }), 200
 
-@admin_bp.route("/admin/drive/<int:drive_id>/close", methods=['POST'])
-@login_required
-@role_required('admin')
-def close_drive(drive_id):
-    drive_to_close = placement_drive.query.get_or_404(drive_id)
-
-    if not drive_to_close:
-        return jsonify({"error": "Placement Drive doesn't exist"}), 404
-    
-    if not drive_to_close.is_active:
-        return jsonify({"error": "Placement Drive already closed"}), 409
-
-    drive_to_close.is_active = False
-    db.session.commit()
-
-    return jsonify({'message': 'Placement drive closed successfully'})
-
 
