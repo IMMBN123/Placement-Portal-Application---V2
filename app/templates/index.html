@@ -552,8 +552,7 @@
                                                 {key: 'id', label: 'Drive ID'},
                                                 {key: 'company_name', label: 'Company'},
                                                 {key: 'job_title', label: 'Role'},
-                                                {key: 'deadline', label: 'Deadline'},
-                                                {key: 'application_count', label: 'Applications'}
+                                                {key: 'deadline', label: 'Deadline'}
                                             ]" 
                                     :items="dashboardData.pendingDrives || []">
                                     <template #table-actions="{ row }">
@@ -910,8 +909,7 @@
                                         {key: 'id', label: 'Drive ID'},
                                         {key: 'company_name', label: 'Company'},
                                         {key: 'job_title', label: 'Role'},
-                                        {key: 'deadline', label: 'Deadline'},
-                                        {key: 'application_count', label: 'Applications'}
+                                        {key: 'deadline', label: 'Deadline'}
                                     ]"  
                             :items="allSearchData.pending_drives || []">
                             <template #table-actions="{ row }">
@@ -1190,8 +1188,7 @@
                                         {key: 'id', label: 'Drive ID'},
                                         {key: 'company_name', label: 'Company'},
                                         {key: 'job_title', label: 'Role'},
-                                        {key: 'deadline', label: 'Deadline'},
-                                        {key: 'application_count', label: 'Applications'}
+                                        {key: 'deadline', label: 'Deadline'}
                                     ]"  
                             :items="dashboardData.pendingDrives || []">
                             <template #table-actions="{ row }">
@@ -1282,21 +1279,61 @@
                 </div>
 
                 <div v-if="user.role === 'student'">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2>Student Dashboard</h2>
-                        <button @click="triggerExport" class="btn btn-success" :disabled="isExporting">
-                            {{ isExporting ? 'Exporting...' : 'Export Applications (CSV)' }}
-                        </button>
-                    </div>
-                    <h4>Available Placement Drives</h4>
-                    <div class="list-group">
-                        <div v-for="drive in dashboardData.drives" :key="drive.id" class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <h5 class="mb-1">{{ drive.title }}</h5>
-                                <small>Company ID: {{ drive.company_id }}</small>
+                    <div v-if="studentView === 'main'">
+                        <div class="card">
+                            <div class="row mt-4">
+                                <div class="col-md-4">
+                                    <div class="card text-white bg-primary dashboard-card">
+                                        <div class="card-body">
+                                            <h5 class="card-title text-uppercase">Eligible Drives</h5>
+                                            <h2 class="mb-0 fw-bold">{{ studentDashboardData.stats?.eligible_drives || 0 }}</h2>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card text-white bg-warning dashboard-card">
+                                        <div class="card-body">
+                                            <h5 class="card-title text-uppercase">Shortlisted Applications</h5>
+                                            <h2 class="mb-0 fw-bold">{{ studentDashboardData.stats?.shortlisted_applications || 0 }}</h2>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card text-white bg-success dashboard-card">
+                                        <div class="card-body">
+                                            <h5 class="card-title text-uppercase">Accepted Applications</h5>
+                                            <h2 class="mb-0 fw-bold">{{ studentDashboardData.stats?.accepted_applications || 0 }}</h2>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <button class="btn btn-sm btn-outline-primary">Apply Now</button>
                         </div>
+                        <dashboard-table 
+                            title="Eligible Drives" 
+                            :columns="studentDriveColumns"
+                            :items="studentDashboardData.eligibleDrives || []">
+                            <template #view-all="{ row }">
+                                    <button type="button" class="btn btn-primary" style="background-color: #5f8f8f;  border-color: #5f8f8f;">All Drives</button>
+                            </template>
+                            <template #table-actions="{ row }">
+                                <div style="display: flex; justify-content: center; gap: 5px;">
+                                    <button type="button" class="btn btn-sm btn-primary">View Drive</button>
+                                </div>
+                            </template>
+                        </dashboard-table>
+                        <dashboard-table 
+                            title="Recent Applications" 
+                            :columns="studentApplicationColumns"
+                            :items="studentDashboardData.recentApplications || []">
+                            <template #view-all="{ row }">
+                                    <button type="button" class="btn btn-primary" style="background-color: #5f8f8f;  border-color: #5f8f8f;">All Applications</button>
+                            </template>
+                            <template #table-actions="{ row }">
+                                <div style="display: flex; justify-content: center; gap: 5px;">
+                                    <button type="button" class="btn btn-sm btn-primary">View Response</button>
+                                </div>
+                            </template>
+                        </dashboard-table>
                     </div>
                 </div>
 
@@ -1391,7 +1428,12 @@
                         </dashboard-table>
                         <dashboard-table v-if="companyDashboardData.pendingDrives.length" style="box-shadow: 0 6px 10px #e49917;"
                             title="Pending Drives" 
-                            :columns="companyDriveColumns" 
+                            :columns="[
+                                        {key: 'id', label: 'Drive ID'},
+                                        {key: 'job_title', label: 'Role'},
+                                        {key: 'package_lpa', label: 'Package (LPA)'},
+                                        {key: 'deadline', label: 'Deadline'}
+                                    ]" 
                             :items="companyDashboardData.pendingDrives || []">
                             <template #table-actions="{ row }">
                                 <div style="display: flex; justify-content: center; gap: 5px;">
@@ -1411,7 +1453,12 @@
                         </dashboard-table>
                         <dashboard-table v-if="companyDashboardData.rejectedDrives.length" style="box-shadow: 0 6px 10px #ff0000";
                             title="Rejected Drives" 
-                            :columns="companyDriveColumns" 
+                            :columns="[
+                                        {key: 'id', label: 'Drive ID'},
+                                        {key: 'job_title', label: 'Role'},
+                                        {key: 'package_lpa', label: 'Package (LPA)'},
+                                        {key: 'deadline', label: 'Deadline'}
+                                    ]" 
                             :items="companyDashboardData.rejectedDrives || []">
                             <template #table-actions="{ row }">
                                 <div style="display: flex; justify-content: center; gap: 5px;">

@@ -236,7 +236,7 @@ const App = {
             {key: 'company_name', label: 'Company Name'},
             {key: 'applied_at', label: 'Applied On'},
             {key: 'status', label: 'Status'}
-        ])
+        ]);
 
         const getFiveStudents = async () => {
             try {
@@ -935,15 +935,75 @@ const App = {
                 showAlert("Unexpected behaviour encountered.", 'danger')
             }
         };
+
+        const studentView = ref('main');
+        const studentDashboardData = ref({});
             
         const fetchStudentDashboard = async () => {
-            dashboardData.value = {
-                drives: [
-                    { id: 1, title: 'Software Engineer', company_id: 101 },
-                    { id: 2, title: 'Data Analyst', company_id: 204 }
-                ]
-            };
+            try{
+                const response = await fetch('/api/student/dashboard');
+                const data = await response.json();
+                if (response.ok) {
+                    studentDashboardData.value = {
+                        stats: {
+                            totalApplications: data.total_applications,
+                            shortlistedApplications: data.shortlisted_applications,
+                            acceptedApplications: data.accepted_applications,
+                            rejectedApplications: data.rejected_applications,
+                            ongoingDrives: data.ongoing_drives,
+                            eligibleDrives: data.eligible_drives
+                        }
+                    };
+                    await getEligibleDrives();
+                    await getRecentApplications();
+
+                } else {
+                    console.error('Response not ok while fetching dashboard stats')
+                }
+            } catch (error) {
+                console.error("Error while fetching student dashboard data:".error)
+            }
         };
+
+        const studentDriveColumns = ref([
+            {key: 'id', label: 'Drive ID'},
+            {key: 'company_name', label: 'Company'},
+            {key: 'job_title', label: 'Role'},
+            {key: 'package_lpa', label: 'Package (LPA)'},
+            {key: 'deadline', label: 'Deadline'}
+        ]);
+
+        const getEligibleDrives = async() => {
+            try{
+                const response = await fetch('/api/student/glance/drives');
+                const data = await response.json();
+                if (response.ok) {
+                    studentDashboardData.value.eligibleDrives = data.eligible_drives;
+                } 
+                } catch(error) {
+                    console.error('Failed to fetch eligible drives:', error)
+                }
+            };
+
+            const studentApplicationColumns = ref([
+                {key: 'placement_drive_id', label: 'Drive ID'},
+                {key: 'company_id', label: 'Company ID'},
+                {key: 'company_name', label: 'Company Name'},
+                {key: 'applied_at', label: 'Applied On'},
+                {key: 'status', label: 'Status'}
+            ]);
+
+            const getRecentApplications = async() => {
+            try{
+                const response = await fetch('/api/student/glance/applications');
+                const data = await response.json();
+                if (response.ok) {
+                    studentDashboardData.value.recentApplications = data.recent_applications;
+                } 
+                } catch(error) {
+                    console.error('Failed to fetch recent applications:', error)
+                }
+            };
 
         const triggerExport = async () => {
             isExporting.value = true;
@@ -972,7 +1032,8 @@ const App = {
             getAllStudents, getAllCompanies, companyView, companyDashboardData,
             fetchCompanyDashboard, driveForm, createDrive, companyProfile, getCompanyProfile,
             selfUpdateCompany, closeDrive, companyDriveColumns, getApplications, driveDetails,
-            getAllDrives, fetchApplicationCounts, viewDrive
+            getAllDrives, fetchApplicationCounts, viewDrive, studentDashboardData ,fetchStudentDashboard,
+            studentView, studentDriveColumns, getEligibleDrives, studentApplicationColumns, getRecentApplications
         };
     }
 };
