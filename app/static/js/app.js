@@ -81,9 +81,18 @@ const App = {
                 if (response.ok) {
                     user.value = data.user; 
                     loginForm.password = '';
-                    if (user.value.role === 'admin') await fetchAdminDashboard(); 
-                    else if (user.value.role === 'student') await fetchStudentDashboard(); 
-                    else await fetchCompanyDashboard();
+                    if (user.value.role === 'admin') {
+                        await fetchAdminDashboard(); 
+                        adminView.value = 'main';
+                    } 
+                    else if (user.value.role === 'student'){
+                        await fetchStudentDashboard();
+                        studentView.value = 'main';
+                    }  
+                    else{
+                        await fetchCompanyDashboard(); 
+                        companyView.value = 'main';
+                    }
                 } else {
                     showAlert(data.error || 'Login failed', 'danger');
                 }
@@ -99,7 +108,8 @@ const App = {
                 await fetch('/api/auth/logout', { method: 'POST' });
                 user.value = null;
                 dashboardData.value = {};
-                companyDashboardData.value = {}; 
+                companyDashboardData.value = {};
+                studentDashboardData.value = {};
                 authView.value = 'landing';
             } catch (error) {
                 console.error("Logout error:", error);
@@ -270,7 +280,7 @@ const App = {
         const updateStudentForm = reactive({
                     user_id: '', email: '', full_name: '', roll_number: '',
                     branch: '', age: '', graduation_year: '', cgpa: '',
-                    phone: '', linkedin_url: ''
+                    phone: '', linkedin_url: '', resume_link: ''
                 });
 
         const getStudentData = (student) => {
@@ -285,7 +295,8 @@ const App = {
             updateStudentForm.phone = student.phone;
             updateStudentForm.linkedin_url = student.linkedin_url || '';
 
-            adminView.value = 'update_student'
+            if (user.value.role === 'admin') adminView.value = 'update_company';
+            if (user.value.role === 'student') studentView.value = 'update_profile';
         };
 
 
@@ -985,25 +996,82 @@ const App = {
                 }
             };
 
-            const studentApplicationColumns = ref([
-                {key: 'placement_drive_id', label: 'Drive ID'},
-                {key: 'company_id', label: 'Company ID'},
-                {key: 'company_name', label: 'Company Name'},
-                {key: 'applied_at', label: 'Applied On'},
-                {key: 'status', label: 'Status'}
-            ]);
+        const studentApplicationColumns = ref([
+            {key: 'placement_drive_id', label: 'Drive ID'},
+            {key: 'company_id', label: 'Company ID'},
+            {key: 'company_name', label: 'Company Name'},
+            {key: 'applied_at', label: 'Applied On'},
+            {key: 'status', label: 'Status'}
+        ]);
 
-            const getRecentApplications = async() => {
-            try{
-                const response = await fetch('/api/student/glance/applications');
-                const data = await response.json();
+        const getRecentApplications = async() => {
+        try{
+            const response = await fetch('/api/student/glance/applications');
+            const data = await response.json();
+            if (response.ok) {
+                studentDashboardData.value.recentApplications = data.recent_applications;
+            } 
+            } catch(error) {
+                console.error('Failed to fetch recent applications:', error)
+            }
+        };
+
+        const studentProfile = ref({});
+
+        const getStudentProfile = async() => {
+            isSubmitting.value = true;
+            try {
+                const response = await fetch('/api/student/profile')
                 if (response.ok) {
-                    studentDashboardData.value.recentApplications = data.recent_applications;
-                } 
-                } catch(error) {
-                    console.error('Failed to fetch recent applications:', error)
+                    const data = await response.json();
+                    studentProfile.value = data.profile;
+                    studentView.value = 'profile';
+                } else {
+                    showAlert('Unable to get profile details!', 'danger');
                 }
-            };
+            } catch(error){
+                console.error('error while getting profile', error);
+                showAlert('Unexpected behavior encountered!', 'danger')
+            } finally {
+                isSubmitting.value = false;
+            }
+        };
+
+        const selfUpdateStudent = async () => {
+            isSubmitting.value = true;
+
+            const formData = new FormData();
+            for (const key in updateStudentForm) {
+                formData.append(key, updateStudentForm[key]);
+            }
+
+            if (studentResumeFile.value) {
+                formData.append('resume_link', studentResumeFile.value);
+            }
+
+            try {
+                const response = await fetch('/api/student/profile/update', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert(data.message || "Company profile updated successfully!", "success");
+                    studentView.value = 'profile';
+                    await getStudentProfile();
+                    studentResumeFile.value = null;
+                } else {
+                    showAlert(data.error || "Update failed.", "danger");
+                }
+            } catch (error) {
+                console.error("Error while updating:",error)
+                showAlert("A network error occurred while submitting Student modifications.", "danger");
+            } finally {
+                isSubmitting.value = false;
+            }
+        };
 
         const triggerExport = async () => {
             isExporting.value = true;
@@ -1033,7 +1101,8 @@ const App = {
             fetchCompanyDashboard, driveForm, createDrive, companyProfile, getCompanyProfile,
             selfUpdateCompany, closeDrive, companyDriveColumns, getApplications, driveDetails,
             getAllDrives, fetchApplicationCounts, viewDrive, studentDashboardData ,fetchStudentDashboard,
-            studentView, studentDriveColumns, getEligibleDrives, studentApplicationColumns, getRecentApplications
+            studentView, studentDriveColumns, getEligibleDrives, studentApplicationColumns, getRecentApplications,
+            studentProfile, getStudentProfile, selfUpdateStudent
         };
     }
 };

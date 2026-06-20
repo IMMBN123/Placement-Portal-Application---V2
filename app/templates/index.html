@@ -191,6 +191,7 @@
                         <button @click="companyView = 'create_drive'" v-if="user.role === 'company' && companyView !== 'create_drive'" class="btn btn-primary">Create Drive</button>
                         <button class="student-btn" @click="logout"><i class="bi bi-box-arrow-left" style="margin-right: 6px;"></i>Logout</button>
                         <button @click="getCompanyProfile" v-if="user.role === 'company' && companyView === 'main'" class="btn btn-link text-decoration-none text-primary d-inline-flex align-items-center gap-2 p-0" style="font-size: x-large;"><i class="bi bi-person-circle" style="color: #f4f6f9;"></i></button>
+                        <button @click="getStudentProfile" v-if="user.role === 'student' && studentView === 'main'" class="btn btn-link text-decoration-none text-primary d-inline-flex align-items-center gap-2 p-0" style="font-size: x-large;"><i class="bi bi-person-circle" style="color: #f4f6f9;"></i></button>
                     </div>
                 </div>
             </nav>
@@ -1334,6 +1335,210 @@
                                 </div>
                             </template>
                         </dashboard-table>
+                    </div>
+                    <div v-else-if="studentView === 'profile'">
+                        <div class="container py-4" style="max-width: 850px;">
+                            <div style="display: flex; justify-content: right; width: 100%;">
+                                <button @click="studentView = 'main'" class="btn btn-link text-decoration-none text-secondary d-inline-flex align-items-center gap-2 p-0"><i class="bi bi-arrow-left"></i>Back to Dashboard</button>
+                            </div>
+
+                            <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden mb-4">
+                                <div class="bg-primary bg-gradient" style="height: 100px; opacity: 0.85;"></div>
+                                <div class="card-body px-4 px-md-5 pb-5 position-relative">
+                                    <div class="position-absolute translate-middle-y start-4 start-md-5 bg-white shadow rounded-circle d-flex align-items-center justify-content-center border border-3 border-white" style="width: 100px; height: 100px; top: 0;">
+                                        <span class="fs-1 fw-bold text-primary text-uppercase">{{ studentProfile.full_name ? studentProfile.full_name[0] : 'S' }}</span>
+                                    </div>
+
+                                    <div style="display: flex; justify-content: space-between; width: 100%;">
+                                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3" style="margin-top: 60px;">
+                                            <div>
+                                                <h2 class="fw-bold text-dark mb-1">{{ studentProfile.full_name }}</h2>
+                                                <div class="d-flex flex-wrap align-items-center gap-2 text-muted small">
+                                                    <span><i class="bi bi-person-badge-fill me-1"></i>{{ studentProfile.roll_number }}</span>
+                                                    <span class="text-secondary">•</span>
+                                                    <span><i class="bi bi-mortarboard-fill me-1"></i>{{ studentProfile.branch }}</span>
+                                                    <span class="text-secondary">•</span>
+                                                    <span>Batch of {{ studentProfile.graduation_year }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button @click=getStudentData(studentProfile) style="height: fit-content;" class="btn btn-outline-primary">Update Profile</button>
+                                    </div>
+
+                                    <div class="row g-4 mt-4">
+                                        <div class="col-md-7">
+                                            <div class="card bg-light border-0 rounded-3 p-4 h-100">
+                                                <h4 class="h6 fw-bold text-uppercase text-muted tracking-wider mb-4">
+                                                    <i class="bi bi-grid-fill me-1"></i> Academic Summary
+                                                </h4>
+                                                
+                                                <div class="row g-3">
+                                                    <div class="col-6">
+                                                        <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Current CGPA</small>
+                                                        <span class="fs-3 fw-bold text-primary">{{ Number(studentProfile.cgpa).toFixed(2) }}</span>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Age</small>
+                                                        <span class="fs-3 fw-bold text-dark">{{ studentProfile.age }} Yrs</span>
+                                                    </div>
+                                                    <div class="col-6 mt-3">
+                                                        <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Department</small>
+                                                        <span class="fw-semibold text-dark">{{ studentProfile.branch }}</span>
+                                                    </div>
+                                                    <div class="col-6 mt-3">
+                                                        <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Graduation Year</small>
+                                                        <span class="fw-semibold text-dark">{{ studentProfile.graduation_year }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-5">
+                                            <div class="card bg-light border-0 rounded-3 p-4 h-100">
+                                                <h4 class="h6 fw-bold text-uppercase text-muted tracking-wider mb-4">
+                                                    <i class="bi bi-telephone-fill me-1"></i> Contact & Profiles
+                                                </h4>
+
+                                                <div class="vstack gap-3">
+                                                    <div v-if="studentProfile.phone">
+                                                        <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Mobile Number</small>
+                                                        <span class="text-dark fw-medium small">
+                                                            <i class="bi bi-phone me-1 text-muted"></i>{{ studentProfile.phone }}
+                                                        </span>
+                                                    </div>
+
+                                                    <div v-if="studentProfile.email">
+                                                        <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Email Address</small>
+                                                        <span class="text-dark fw-medium small">
+                                                            <i class="bi bi-envelope me-1 text-muted"></i>{{ studentProfile.email }}
+                                                        </span>
+                                                    </div>
+
+                                                    <div v-if="studentProfile.linkedin_url">
+                                                        <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">LinkedIn Network</small>
+                                                        <a :href="studentProfile.linkedin_url" target="_blank" class="text-decoration-none text-primary fw-medium small d-inline-flex align-items-center gap-1">
+                                                            <i class="bi bi-linkedin"></i>
+                                                            <span>Connect on LinkedIn</span>
+                                                            <i class="bi bi-box-arrow-up-right text-muted" style="font-size: 0.75rem;"></i>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12" v-if="studentProfile.resume_link">
+                                            <div class="card border border-light-subtle rounded-3 p-4 bg-light shadow-sm">
+                                                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3">
+                                                    <div class="d-flex align-items-center gap-3">
+    
+                                                        <div class="bg-white border rounded overflow-hidden shadow-sm d-flex align-items-center justify-content-center" style="width: 58px; height: 58px; min-width: 58px;">
+                                                            <img v-if="['png', 'jpg', 'jpeg', 'webp'].some(ext => studentProfile.resume_link?.toLowerCase().endsWith(ext))"
+                                                                :src="'/static/uploads/' + studentProfile.resume_link" 
+                                                                alt="Resume Attachment" 
+                                                                class="img-fluid w-100 h-100"
+                                                                style="object-fit: cover;">
+                                                            <i v-else class="bi bi-file-earmark-pdf fs-4 text-danger"></i>
+                                                        </div>
+                                                        
+                                                        <div>
+                                                            <h6 class="fw-bold mb-0 text-dark">
+                                                                {{ ['png', 'jpg', 'jpeg', 'webp'].some(ext => studentProfile.resume_link?.toLowerCase().endsWith(ext)) ? 'Uploaded Resume' : 'Active Resume Sheet' }}
+                                                            </h6>
+                                                            <small class="text-muted text-break">Filename: {{ studentProfile.resume_link }}</small>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <a :href="'/static/uploads/' + studentProfile.resume_link" target="_blank" class="btn btn-primary rounded-pill px-4 py-2 small d-inline-flex align-items-center gap-2 align-self-start align-self-sm-center shadow-sm">
+                                                        <i class="bi bi-box-arrow-up-right"></i>
+                                                        <span>Open Resume</span>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else-if="studentView === 'update_profile'">
+                        <div class="container">
+                            <div style="display: flex; justify-content: space-between; width: 100%;">
+                                <button @click="studentView = 'profile'" class="btn btn-link text-decoration-none text-secondary d-inline-flex align-items-center gap-2 p-0"><i class="bi bi-arrow-left"></i>Back to profile</button>
+                                <button @click="studentView = 'main'" class="btn btn-link text-decoration-none text-secondary d-inline-flex align-items-center gap-2 p-0"><i class="bi bi-arrow-left"></i>Back to Dashboard</button>
+
+                            </div>
+                            <div class="card">
+                                <h3 style="text-align: center; margin-bottom: 60px;">Update Profile</h3>
+                                
+                                <form @submit.prevent="selfUpdateStudent" enctype="multipart/form-data">
+                                    <div class="row g-3 mb-3">
+                                        <div class="col md-6" style="display: flex; justify-content: center; gap: 10px">
+                                            <label for="email">Email* :</label>
+                                            <input type="email" id="email" name="email" v-model="updateStudentForm.email" required>
+                                        </div>
+                                            <div class="col md-6" style="display: flex; justify-content: center; gap: 10px">
+                                            <label for="full_name">Full Name* :</label>
+                                            <input style="width: 270px;" type="text" id="full_name" name="full_name" v-model="updateStudentForm.full_name" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="row g-3 mb-3">
+                                        <div class="col md-6" style="display: flex; justify-content: center; gap: 10px">
+                                            <label for="roll_number">Roll Number* :</label>
+                                            <input style="width: 285px;" type="text" id="roll_number" name="roll_number" pattern="\d{2}[A-Za-z]\d{7}" placeholder="21D7650945" v-model="updateStudentForm.roll_number" required>
+                                        </div>
+                                        <div class="col md-6" style="display: flex; justify-content: center; gap: 10px">
+                                            <label for="branch">Branch* :</label>
+                                            <select style="height: fit-content; margin-top: 15px; width: 330px;" type="text" id="branch" name="branch" v-model="updateStudentForm.branch" required>
+                                                <option value="CSE">CSE</option>
+                                                <option value="ECE">ECE</option>
+                                                <option value="ME">ME</option>
+                                                <option value="CE">CE</option>
+                                                <option value="EE">EE</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="row g-3 mb-3">
+                                        <div class="col md-6" style="display: flex; justify-content: center; gap: 10px">
+                                            <label for="age">Age* :</label>
+                                            <input style="width: 320px;" type="number" id="age" name="age" v-model="updateStudentForm.age" required>
+                                        </div>
+                                        <div class="col md-6" style="display: flex; justify-content: center; gap: 10px">
+                                            <label for="graduation_year">Graduation Year :</label>
+                                            <input style="width: 245px;" type="number" id="graduation_year" name="graduation_year" v-model="updateStudentForm.graduation_year">
+                                        </div>
+                                    </div>
+
+                                    <div class="row g-3 mb-3">
+                                        <div class="col md-6" style="display: flex; justify-content: center; gap: 10px">
+                                            <label for="cgpa">CGPA :</label>
+                                            <input style="width: 350px;" type="number" step=0.01 id="cgpa" name="cgpa" v-model="updateStudentForm.cgpa">
+                                        </div>
+                                        <div class="col md-6" style="display: flex; justify-content: center; gap: 10px">
+                                            <label for="phone">Phone Number* :</label>
+                                            <input style="width: 250px;" type="tel" id=phone name=phone v-model="updateStudentForm.phone" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="row g-3 mb-3">
+                                        <div class="col md-6" style="display: flex; justify-content: center; gap: 10px">
+                                            <label for=linkedin_url>LinkedIn URL :</label>
+                                            <input style="width: 270px;" type=url id=linkedin_url name=linkedin_url v-model="updateStudentForm.linkedin_url"><br><br>
+                                        </div>
+                                        <div class="col md-6" style="display: flex; justify-content: center; gap: 10px">
+                                            <label for=resume_link>Upload Resume* :</label>
+                                            <input @change="handleFileUpload" style="width: 280px;" type="file" id=resume_link name=resume_link accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx">
+                                        </div>
+                                    </div>
+                                    <br>
+                                    <div style="display: flex; justify-content: center;">
+                                        <button style="width: fit-content; background-color: #5f8f8f; margin-top: 30px;" type="submit" :disabled="isSubmitting">
+                                            {{ isSubmitting ? 'Updating...' : 'Update' }}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

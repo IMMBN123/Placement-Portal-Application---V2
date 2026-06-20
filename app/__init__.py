@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, send_from_directory
 from flask_login import LoginManager
 from config import Config
 from app.models import db, user 
@@ -28,9 +28,15 @@ def create_app():
     from app.api.auth import auth_bp
     from app.api.admin import admin_bp
     from app.api.company import company_bp
+    from app.api.student import student_bp
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(company_bp)
+    app.register_blueprint(student_bp)
+
+    @app.route('/static/uploads/<path:filename>')
+    def serve_uploads(filename):
+        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
     try:
         from utils import auto_close_expired_drives

@@ -297,6 +297,7 @@ def reject_drive(drive_id):
     try:
         d.is_approved = False
         d.is_rejected = True
+        d.is_active = False
         db.session.commit()  
         return jsonify({"message": f"Drive '{d.id}' rejected successfully."}), 200
     
