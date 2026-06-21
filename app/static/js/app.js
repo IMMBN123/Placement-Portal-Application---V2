@@ -759,6 +759,7 @@ const App = {
                 if (response.ok) {
                     companyView.value = 'main';
                     showAlert(data.message, 'success');
+                    for (const key in driveForm) driveForm[key] = '';
                 } else {
                     showAlert(data.error, 'danger');
                 }
@@ -907,6 +908,7 @@ const App = {
         const viewDrive = async(drive) => {
             if (user.value.role == 'admin') adminView.value = 'view_drive';
             if (user.value.role == 'company') companyView.value = 'view_drive';
+            if (user.value.role == 'student') studentView.value = 'view_drive';
             driveDetails.id = drive.id;
             driveDetails.company_name = drive.company_name;
             driveDetails.job_title = drive.job_title;
@@ -967,6 +969,7 @@ const App = {
                     };
                     await getEligibleDrives();
                     await getRecentApplications();
+                    await fetchAllDrives();
 
                 } else {
                     console.error('Response not ok while fetching dashboard stats')
@@ -989,12 +992,26 @@ const App = {
                 const response = await fetch('/api/student/glance/drives');
                 const data = await response.json();
                 if (response.ok) {
-                    studentDashboardData.value.eligibleDrives = data.eligible_drives;
+                    studentDashboardData.value.fiveDrives = data.eligible_drives;
                 } 
-                } catch(error) {
-                    console.error('Failed to fetch eligible drives:', error)
+            } catch(error) {
+                console.error('Failed to fetch eligible drives:', error)
                 }
-            };
+        };
+
+        const fetchAllDrives = async() => {
+            try{
+                const response = await fetch('/api/student/drives');
+                const data = await response.json();
+                if (response.ok) {
+                    studentDashboardData.value.appliedDrives = data.applied_drives;
+                    studentDashboardData.value.eligibleDrives = data.eligible_drives;
+                    studentDashboardData.value.ongoingDrives = data.ongoing_drives;
+                } 
+            } catch(error) {
+                console.error('Failed to fetch drives:', error)
+                }
+        };
 
         const studentApplicationColumns = ref([
             {key: 'placement_drive_id', label: 'Drive ID'},
@@ -1073,6 +1090,39 @@ const App = {
             }
         };
 
+        const studentSearchData = ref({});
+
+        const getStudentSearch = async () => {
+            isSubmitting.value = true;
+
+            try {
+                const response = await fetch(`api/student/search?q=${encodeURIComponent(search_term.value.trim())}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    studentSearchData.value.appliedDrives = data.applied_drives;
+                    studentSearchData.value.eligibleDrives = data.eligible_drives;
+                    studentSearchData.value.ongoingDrives = data.ongoing_drives;
+                    studentSearchData.value.activeApplications = data.active_applications;
+                    studentSearchData.value.allApplications = data.all_applications;
+                    studentView.value = 'search';
+                }
+                else {
+                    studentView.value = 'main'
+                    showAlert(data.error || "Something unexpected happened. Please try again", 'danger');
+                }
+            } catch (error) {
+                console.error("Search error:", error);
+                showAlert("A network error occurred while updating status.", "danger");
+            } finally {
+                isSubmitting.value = false;
+            } 
+        };
+
         const triggerExport = async () => {
             isExporting.value = true;
             setTimeout(() => {
@@ -1102,7 +1152,8 @@ const App = {
             selfUpdateCompany, closeDrive, companyDriveColumns, getApplications, driveDetails,
             getAllDrives, fetchApplicationCounts, viewDrive, studentDashboardData ,fetchStudentDashboard,
             studentView, studentDriveColumns, getEligibleDrives, studentApplicationColumns, getRecentApplications,
-            studentProfile, getStudentProfile, selfUpdateStudent
+            studentProfile, getStudentProfile, selfUpdateStudent, studentSearchData, getStudentSearch,
+            fetchAllDrives
         };
     }
 };
@@ -1164,6 +1215,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                 
                                 <div class="text-md-end">
                                     <span v-if="data.fiveDrives?.some(d => d.id === drive.id)" class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill small fw-semibold">
+                                        Active Drive
+                                    </span>
+                                    <span v-else-if="data.eligibleDrives?.some(d => d.id === drive.id)" class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill small fw-semibold">
+                                        Active Drive
+                                    </span>
+                                    <span v-else-if="data.appliedDrives?.some(d => d.id === drive.id)" class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill small fw-semibold">
                                         Active Drive
                                     </span>
                                     <span v-else-if="data.ongoingDrives?.some(d => d.id === drive.id)" class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill small fw-semibold">

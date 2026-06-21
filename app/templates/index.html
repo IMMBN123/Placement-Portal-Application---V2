@@ -182,7 +182,17 @@
                             <div class="row justify-content-center">
                                 <div class="col-md-6" style="display: flex; justify-content: center;">
                                     <form @submit.prevent="getAllSearch", class="search-container">
-                                        <input type="text" class="form-control search-input" placeholder="Search Students, Drives, Companies or applications" v-model="search_term" style="width: 410px;">
+                                        <input type="text" class="form-control search-input" placeholder="Search Students, Drives, Companies or Applications" v-model="search_term" style="width: 410px;">
+                                        <i class="bi bi-search search-icon" style="color: black;"></i>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else-if="user.role === 'student' && studentView === 'main' || studentView === 'search'">
+                            <div class="row justify-content-center">
+                                <div class="col-md-6" style="display: flex; justify-content: center;">
+                                    <form @submit.prevent="getStudentSearch", class="search-container">
+                                        <input type="text" class="form-control search-input" placeholder="Search Active Drives or your Applications" v-model="search_term" style="width: 410px;">
                                         <i class="bi bi-search search-icon" style="color: black;"></i>
                                     </form>
                                 </div>
@@ -1287,7 +1297,7 @@
                                     <div class="card text-white bg-primary dashboard-card">
                                         <div class="card-body">
                                             <h5 class="card-title text-uppercase">Eligible Drives</h5>
-                                            <h2 class="mb-0 fw-bold">{{ studentDashboardData.stats?.eligible_drives || 0 }}</h2>
+                                            <h2 class="mb-0 fw-bold">{{ studentDashboardData.stats?.eligibleDrives || 0 }}</h2>
                                         </div>
                                     </div>
                                 </div>
@@ -1295,7 +1305,7 @@
                                     <div class="card text-white bg-warning dashboard-card">
                                         <div class="card-body">
                                             <h5 class="card-title text-uppercase">Shortlisted Applications</h5>
-                                            <h2 class="mb-0 fw-bold">{{ studentDashboardData.stats?.shortlisted_applications || 0 }}</h2>
+                                            <h2 class="mb-0 fw-bold">{{ studentDashboardData.stats?.shortlistedApplications || 0 }}</h2>
                                         </div>
                                     </div>
                                 </div>
@@ -1303,7 +1313,7 @@
                                     <div class="card text-white bg-success dashboard-card">
                                         <div class="card-body">
                                             <h5 class="card-title text-uppercase">Accepted Applications</h5>
-                                            <h2 class="mb-0 fw-bold">{{ studentDashboardData.stats?.accepted_applications || 0 }}</h2>
+                                            <h2 class="mb-0 fw-bold">{{ studentDashboardData.stats?.acceptedApplications || 0 }}</h2>
                                         </div>
                                     </div>
                                 </div>
@@ -1312,13 +1322,13 @@
                         <dashboard-table 
                             title="Eligible Drives" 
                             :columns="studentDriveColumns"
-                            :items="studentDashboardData.eligibleDrives || []">
+                            :items="studentDashboardData.fiveDrives || []">
                             <template #view-all="{ row }">
-                                    <button type="button" class="btn btn-primary" style="background-color: #5f8f8f;  border-color: #5f8f8f;">All Drives</button>
+                                    <button @click="studentView = 'all_drives'" type="button" class="btn btn-primary" style="background-color: #5f8f8f;  border-color: #5f8f8f;">All Drives</button>
                             </template>
                             <template #table-actions="{ row }">
                                 <div style="display: flex; justify-content: center; gap: 5px;">
-                                    <button type="button" class="btn btn-sm btn-primary">View Drive</button>
+                                    <button @click="viewDrive(row)" type="button" class="btn btn-sm btn-primary">View Drive</button>
                                 </div>
                             </template>
                         </dashboard-table>
@@ -1539,6 +1549,108 @@
                                 </form>
                             </div>
                         </div>
+                    </div>
+                    <div v-else-if="studentView === 'search'">
+                        <div style="display: flex; justify-content: space-between; width: 100%;">
+                            <h3 class="mb-4 font-weight-bold" style="color: #3c6e71;">Search Results for "{{ search_term }}"</h3>
+                            <button @click="studentView = 'main', search_term = ''" class="btn btn-link text-decoration-none text-secondary d-inline-flex align-items-center gap-2 p-0"><i class="bi bi-arrow-left"></i>Back to Dashboard</button>
+                        </div>
+                        <dashboard-table v-if="studentSearchData.appliedDrives.length"
+                            title="Applied Drives" 
+                            :columns="studentDriveColumns"
+                            :items="studentSearchData.appliedDrives || []">
+                            <template #table-actions="{ row }">
+                                <div style="display: flex; justify-content: center; gap: 5px;">
+                                    <button @click="viewDrive(row)" type="button" class="btn btn-sm btn-primary">View Drive</button>
+                                </div>
+                            </template>
+                        </dashboard-table>
+                        <dashboard-table v-if="studentSearchData.eligibleDrives.length"
+                            title="Eligible Drives" 
+                            :columns="studentDriveColumns"
+                            :items="studentSearchData.eligibleDrives || []">
+                            <template #table-actions="{ row }">
+                                <div style="display: flex; justify-content: center; gap: 5px;">
+                                    <button @click="viewDrive(row)" type="button" class="btn btn-sm btn-primary">View Drive</button>
+                                </div>
+                            </template>
+                        </dashboard-table>
+                        <dashboard-table v-if="studentSearchData.ongoingDrives.length"
+                            title="Ongoing Drives" 
+                            :columns="studentDriveColumns"
+                            :items="studentSearchData.ongoingDrives || []">
+                            <template #table-actions="{ row }">
+                                <div style="display: flex; justify-content: center; gap: 5px;">
+                                    <button @click="viewDrive(row)" type="button" class="btn btn-sm btn-primary">View Drive</button>
+                                </div>
+                            </template>
+                        </dashboard-table>
+                        <dashboard-table v-if="studentSearchData.activeApplications.length"
+                            title="Active Applications"
+                            :columns="studentApplicationColumns"
+                            :items="studentSearchData.activeApplications || []">
+                            <template #table-actions="{ row }">
+                                <div style="display: flex; justify-content: center; gap: 5px;">
+                                    <button type="button" class="btn btn-sm btn-primary">View Response</button>
+                                </div>
+                            </template>
+                        </dashboard-table>
+                        <dashboard-table v-if="studentSearchData.allApplications.length"
+                            title="All Applications"
+                            :columns="studentApplicationColumns"
+                            :items="studentSearchData.allApplications || []">
+                            <template #table-actions="{ row }">
+                                <div style="display: flex; justify-content: center; gap: 5px;">
+                                    <button type="button" class="btn btn-sm btn-primary">View Response</button>
+                                </div>
+                            </template>
+                        </dashboard-table>
+                    </div>
+                    <div v-else-if="studentView === 'view_drive'">
+                        <div style="display: flex; justify-content: space-between;">
+                            <button @click="studentView = 'all_drives'" class="btn btn-link text-decoration-none text-secondary d-inline-flex align-items-center gap-2 p-0"><i class="bi bi-arrow-left"></i>All Drives</button>
+                            <button @click="studentView = 'main'" class="btn btn-link text-decoration-none text-secondary d-inline-flex align-items-center gap-2 p-0"><i class="bi bi-arrow-left"></i>Back to Dashboard</button>
+                        </div>
+                        <view-drive
+                            :drive="driveDetails"
+                            :data="studentDashboardData">
+                        </view-drive>
+                        <button v-if="studentDashboardData.eligibleDrives?.some(d => d.id === driveDetails.id)" type="button" class="btn btn-primary" style="background-color: #5f8f8f;  border-color: #5f8f8f;">Apply</button>
+                    </div>
+                    <div v-else-if="studentView === 'all_drives'">
+                        <div style="display: flex; justify-content: right;">
+                            <button @click="studentView = 'main'" class="btn btn-link text-decoration-none text-secondary d-inline-flex align-items-center gap-2 p-0"><i class="bi bi-arrow-left" style="margin-right: 6px;"></i>Back to Dashboard</button>
+                        </div>
+                        <dashboard-table v-if="studentDashboardData.appliedDrives.length"
+                            title="Applied Drives" 
+                            :columns="studentDriveColumns"
+                            :items="studentDashboardData.appliedDrives || []">
+                            <template #table-actions="{ row }">
+                                <div style="display: flex; justify-content: center; gap: 5px;">
+                                    <button @click="viewDrive(row)" type="button" class="btn btn-sm btn-primary">View Drive</button>
+                                </div>
+                            </template>
+                        </dashboard-table>
+                        <dashboard-table v-if="studentDashboardData.eligibleDrives.length"
+                            title="Eligible Drives" 
+                            :columns="studentDriveColumns"
+                            :items="studentDashboardData.eligibleDrives || []">
+                            <template #table-actions="{ row }">
+                                <div style="display: flex; justify-content: center; gap: 5px;">
+                                    <button @click="viewDrive(row)" type="button" class="btn btn-sm btn-primary">View Drive</button>
+                                </div>
+                            </template>
+                        </dashboard-table>
+                        <dashboard-table
+                            title="Ongoing Drives" 
+                            :columns="studentDriveColumns"
+                            :items="studentDashboardData.ongoingDrives || []">
+                            <template #table-actions="{ row }">
+                                <div style="display: flex; justify-content: center; gap: 5px;">
+                                    <button @click="viewDrive(row)" type="button" class="btn btn-sm btn-primary">View Drive</button>
+                                </div>
+                            </template>
+                        </dashboard-table>
                     </div>
                 </div>
 

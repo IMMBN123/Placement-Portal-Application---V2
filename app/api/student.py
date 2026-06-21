@@ -167,3 +167,118 @@ def update_profile():
         print(f"Student Update Failure Exception: {e}")
         return jsonify({"error": "An internal database error occurred while committing changes."}), 500
 
+@student_bp.route('/search', methods=['GET'])
+@login_required
+@role_required('student')
+def student_search():
+
+    query = request.args.get('q', '').strip()
+    if not query:
+        return jsonify({"error": "Type something in the search bar"}), 400
+
+    search_term = f"%{query}%"
+
+    applied_drives = placement_drive.query.join(application).join(company).join(user).filter(
+        placement_drive.is_approved == True,
+        placement_drive.is_active == True,
+        application.student_id == current_user.id,
+        user.is_active == True,
+        or_(
+            placement_drive.job_title.ilike(search_term),
+            placement_drive.location.ilike(search_term),
+            company.company_name.ilike(search_term)
+        )
+    ).all()
+
+    cgpa = get_student_cgpa()
+    eligible_drives = placement_drive.query.join(company).join(user).filter(
+        placement_drive.is_approved == True,
+        placement_drive.is_active == True,
+        company.is_approved == True,
+        user.is_active == True,
+        placement_drive.min_cgpa <= cgpa,
+        or_(
+            placement_drive.job_title.ilike(search_term),
+            placement_drive.location.ilike(search_term),
+            company.company_name.ilike(search_term)
+        )
+    ).all()
+
+    ongoing_drives = placement_drive.query.join(company).join(user).filter(
+        placement_drive.is_approved == True,
+        placement_drive.is_active == True,
+        company.is_approved == True,
+        user.is_active == True,
+        or_(
+            placement_drive.job_title.ilike(search_term),
+            placement_drive.location.ilike(search_term),
+            company.company_name.ilike(search_term)
+        )
+    ).all()
+
+    active_applications = application.query\
+        .join(placement_drive).join(company).join(user)\
+        .filter(
+            application.student_id == current_user.id,
+            placement_drive.is_active == True,
+            user.is_active == True,
+            company.is_approved == True,
+            or_(
+                placement_drive.job_title.ilike(search_term),
+                placement_drive.location.ilike(search_term),
+                company.company_name.ilike(search_term)
+            )
+        ).all()
+    
+    all_applications = application.query\
+        .join(placement_drive).join(company).join(user)\
+        .filter(
+            application.student_id == current_user.id,
+            company.is_approved == True,
+            or_(
+                placement_drive.job_title.ilike(search_term),
+                placement_drive.location.ilike(search_term),
+                company.company_name.ilike(search_term)
+            )
+        ).all()
+    
+    if not applied_drives and not eligible_drives and not ongoing_drives and not active_applications and not all_applications and not ongoing_drives:
+        return jsonify({"error": "Search term has no match!"}), 404
+
+    return jsonify({
+        "ongoing_drives": [d.to_dict() for d in ongoing_drives],
+        "applied_drives": [d.to_dict() for d in applied_drives],
+        "eligible_drives": [d.to_dict() for d in eligible_drives],
+        "active_applications": [a.to_dict() for a in active_applications],
+        "all_applications": [a.to_dict() for a in all_applications],
+    }), 200
+
+@student_bp.route('/drives', methods=['GET'])
+@login_required
+@role_required('student')
+def get_all_drives():
+    applied_drives = placement_drive.query.join(application).join(company).join(user).filter(
+        placement_drive.is_approved == True,
+        placement_drive.is_active == True,
+        application.student_id == current_user.id,
+        user.is_active == True).all()
+
+    cgpa = get_student_cgpa()
+    eligible_drives = placement_drive.query.join(company).join(user).filter(
+        placement_drive.is_approved == True,
+        placement_drive.is_active == True,
+        company.is_approved == True,
+        user.is_active == True,
+        placement_drive.min_cgpa <= cgpa).all()
+    
+    ongoing_drives = placement_drive.query.join(company).join(user).filter(
+        placement_drive.is_approved == True,
+        placement_drive.is_active == True,
+        company.is_approved == True,
+        user.is_active == True).all()
+    
+    return jsonify({
+        "ongoing_drives": [d.to_dict() for d in ongoing_drives],
+        "applied_drives": [d.to_dict() for d in applied_drives],
+        "eligible_drives": [d.to_dict() for d in eligible_drives]}), 200
+    
