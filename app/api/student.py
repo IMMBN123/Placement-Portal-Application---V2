@@ -17,6 +17,11 @@ def get_student_cgpa():
     student_cgpa = student.query.filter(current_user.id == student.user_id).with_entities(student.cgpa).scalar()
     return student_cgpa
 
+def get_applied_drive_ids():
+    applied_drive_ids = db.session.query(application.placement_drive_id).filter(
+    application.student_id == current_user.id)
+    return applied_drive_ids
+
 @student_bp.route('/dashboard', methods=['GET'])
 @login_required
 @role_required('student')
@@ -28,28 +33,111 @@ def get_stats():
     rejected_app_count = student.query.join(application).filter(current_user.id == student.user_id, application.status == 'Rejected').count()
     ongoing_drive_count = placement_drive.query.join(company).join(user).filter(placement_drive.is_active == True, company.is_approved == True, user.is_active == True).count()
     eligible_drive_count = placement_drive.query.join(company).join(user).filter(placement_drive.is_active == True, company.is_approved == True, user.is_active == True, placement_drive.min_cgpa <= student_cgpa).count()
+    applied_drive_count = placement_drive.query.join(application).join(company).join(user).filter(placement_drive.is_approved == True,placement_drive.is_active == True,application.student_id == current_user.id,user.is_active == True).count()
 
     return jsonify({"total_applications": total_app_count,
                     "shortisted_applications": shortlisted_app_count,
                     "accepted_applications": accepted_app_count,
                     "rejected_applications": rejected_app_count,
                     'ongoing_drives': ongoing_drive_count,
-                    'eligible_drives': eligible_drive_count}), 200
+                    'eligible_drives': eligible_drive_count,
+                    'applied_drives': applied_drive_count}), 200
 
 @student_bp.route('/glance/drives', methods=['GET'])
 @login_required
 @role_required('student')
 def get_five_drives():
     student_cgpa = get_student_cgpa()
-    eligible_drives = placement_drive.query.join(company).join(user).filter(placement_drive.is_active == True, company.is_approved == True, user.is_active == True, placement_drive.min_cgpa <= student_cgpa).limit(5).all()
+    applied_drive_ids = get_applied_drive_ids()
+    eligible_drives = placement_drive.query.join(company).join(user).filter(
+        placement_drive.is_active == True,
+        company.is_approved == True,
+        user.is_active == True, 
+        placement_drive.min_cgpa <= student_cgpa,
+        ~placement_drive.id.in_(applied_drive_ids)).limit(5).all()
     return jsonify({"eligible_drives": [d.to_dict() for d in eligible_drives]}), 200
 
 @student_bp.route('/glance/applications', methods=['GET'])
 @login_required
 @role_required('student')
 def get_five_applications():
-    applications = student.query.join(application).filter(current_user.id == student.user_id).limit(5).all()
-    return jsonify({"recent_applications": [a.to_dict() for a in applications]}), 200
+    results = db.session.query(
+        placement_drive,         
+        application.status,       
+        application.applied_at    
+    ).join(
+        application, 
+        placement_drive.id == application.placement_drive_id
+    ).filter(
+        application.student_id == current_user.id
+    ).limit(5).all()
+    
+    summary_data = []
+    
+    for drive, app_status, app_applied_at in results:
+        drive_data = drive.to_dict()
+        
+        drive_data["status"] = app_status
+        drive_data["applied_at"] = app_applied_at.isoformat() if app_applied_at else None
+        
+        summary_data.append(drive_data)
+
+    return jsonify({"recent_applications": summary_data}), 200
+
+@student_bp.route('/applications', methods=['GET'])
+@login_required
+@role_required('student')
+def get_all_applications():
+    active_results = db.session.query(
+            placement_drive,
+            application.id,
+            application.status,
+            application.applied_at
+        ).select_from(application)\
+         .join(placement_drive, application.placement_drive_id == placement_drive.id)\
+         .join(company, placement_drive.company_id == company.user_id)\
+         .join(user, company.user_id == user.id)\
+         .filter(
+             application.student_id == current_user.id,
+             placement_drive.is_active == True,
+             user.is_active == True,
+             company.is_approved == True).all()
+
+    active_applications_data = []
+    for drive, app_id, app_status, app_applied_at in active_results:
+        drive_data = drive.to_dict()
+        drive_data["application_id"] = app_id
+        drive_data["status"] = app_status
+        drive_data["applied_at"] = app_applied_at.isoformat() if app_applied_at else None
+        
+        active_applications_data.append(drive_data)
+
+    previous_results = db.session.query(
+        placement_drive,
+        application.id,
+        application.status,
+        application.applied_at
+    ).select_from(application)\
+        .join(placement_drive, application.placement_drive_id == placement_drive.id)\
+        .join(company, placement_drive.company_id == company.user_id)\
+        .join(user, company.user_id == user.id)\
+        .filter(
+            application.student_id == current_user.id,
+            company.is_approved == True,
+            placement_drive.is_active == False).all()
+
+    prev_applications_data = []
+    for drive, app_id, app_status, app_applied_at in previous_results:
+        drive_data = drive.to_dict()
+        
+        drive_data["application_id"] = app_id
+        drive_data["status"] = app_status
+        drive_data["applied_at"] = app_applied_at.isoformat() if app_applied_at else None
+        
+        prev_applications_data.append(drive_data)
+
+    return jsonify({"active_applications": active_applications_data,
+                    "previous_applications": prev_applications_data })
 
 @student_bp.route('/profile', methods=['GET'])
 @login_required
@@ -191,12 +279,14 @@ def student_search():
     ).all()
 
     cgpa = get_student_cgpa()
+    applied_drive_ids = get_applied_drive_ids()
     eligible_drives = placement_drive.query.join(company).join(user).filter(
         placement_drive.is_approved == True,
         placement_drive.is_active == True,
         company.is_approved == True,
         user.is_active == True,
         placement_drive.min_cgpa <= cgpa,
+        ~placement_drive.id.in_(applied_drive_ids),
         or_(
             placement_drive.job_title.ilike(search_term),
             placement_drive.location.ilike(search_term),
@@ -204,11 +294,12 @@ def student_search():
         )
     ).all()
 
-    ongoing_drives = placement_drive.query.join(company).join(user).filter(
+    non_eligible_drives = placement_drive.query.join(company).join(user).filter(
         placement_drive.is_approved == True,
         placement_drive.is_active == True,
         company.is_approved == True,
         user.is_active == True,
+        placement_drive.min_cgpa > cgpa,
         or_(
             placement_drive.job_title.ilike(search_term),
             placement_drive.location.ilike(search_term),
@@ -216,41 +307,76 @@ def student_search():
         )
     ).all()
 
-    active_applications = application.query\
-        .join(placement_drive).join(company).join(user)\
+    active_applications = db.session.query(
+            placement_drive,
+            application.id,
+            application.status,
+            application.applied_at
+            ).select_from(application)\
+            .join(placement_drive, application.placement_drive_id == placement_drive.id)\
+            .join(company, placement_drive.company_id == company.user_id)\
+            .join(user, company.user_id == user.id)\
+            .filter(
+                application.student_id == current_user.id,
+                placement_drive.is_active == True,
+                user.is_active == True,
+                company.is_approved == True,
+                or_(
+                    placement_drive.job_title.ilike(search_term),
+                    placement_drive.location.ilike(search_term),
+                    company.company_name.ilike(search_term)
+                )
+            ).all()
+
+    active_applications_data = []
+    for drive, app_id, app_status, app_applied_at in active_applications:
+        drive_data = drive.to_dict()
+        
+        drive_data["application_id"] = app_id
+        drive_data["status"] = app_status
+        drive_data["applied_at"] = app_applied_at.isoformat() if app_applied_at else None
+        
+        active_applications_data.append(drive_data)
+
+    prev_applications = db.session.query(
+        placement_drive,
+        application.id,
+        application.status,
+        application.applied_at
+    ).select_from(application)\
+        .join(placement_drive, application.placement_drive_id == placement_drive.id)\
+        .join(company, placement_drive.company_id == company.user_id)\
+        .join(user, company.user_id == user.id)\
         .filter(
             application.student_id == current_user.id,
-            placement_drive.is_active == True,
-            user.is_active == True,
             company.is_approved == True,
+            placement_drive.is_active == False,
             or_(
                 placement_drive.job_title.ilike(search_term),
                 placement_drive.location.ilike(search_term),
                 company.company_name.ilike(search_term)
             )
         ).all()
+
+    prev_applications_data = []
+    for drive, app_id, app_status, app_applied_at in prev_applications:
+        drive_data = drive.to_dict()
     
-    all_applications = application.query\
-        .join(placement_drive).join(company).join(user)\
-        .filter(
-            application.student_id == current_user.id,
-            company.is_approved == True,
-            or_(
-                placement_drive.job_title.ilike(search_term),
-                placement_drive.location.ilike(search_term),
-                company.company_name.ilike(search_term)
-            )
-        ).all()
+        drive_data["application_id"] = app_id
+        drive_data["status"] = app_status
+        drive_data["applied_at"] = app_applied_at.isoformat() if app_applied_at else None
+        
+        prev_applications_data.append(drive_data)
     
-    if not applied_drives and not eligible_drives and not ongoing_drives and not active_applications and not all_applications and not ongoing_drives:
+    if not applied_drives and not eligible_drives and not non_eligible_drives and not active_applications and not prev_applications:
         return jsonify({"error": "Search term has no match!"}), 404
 
     return jsonify({
-        "ongoing_drives": [d.to_dict() for d in ongoing_drives],
+        "non_eligible_drives": [d.to_dict() for d in non_eligible_drives],
         "applied_drives": [d.to_dict() for d in applied_drives],
         "eligible_drives": [d.to_dict() for d in eligible_drives],
-        "active_applications": [a.to_dict() for a in active_applications],
-        "all_applications": [a.to_dict() for a in all_applications],
+        "active_applications": active_applications_data,
+        "previous_applications": prev_applications_data,
     }), 200
 
 @student_bp.route('/drives', methods=['GET'])
@@ -264,21 +390,64 @@ def get_all_drives():
         user.is_active == True).all()
 
     cgpa = get_student_cgpa()
+    applied_drive_ids = get_applied_drive_ids()
     eligible_drives = placement_drive.query.join(company).join(user).filter(
         placement_drive.is_approved == True,
         placement_drive.is_active == True,
         company.is_approved == True,
         user.is_active == True,
-        placement_drive.min_cgpa <= cgpa).all()
+        placement_drive.min_cgpa <= cgpa,
+        ~placement_drive.id.in_(applied_drive_ids)).all()
+
     
-    ongoing_drives = placement_drive.query.join(company).join(user).filter(
+    non_eligible_drives = placement_drive.query.join(company).join(user).filter(
         placement_drive.is_approved == True,
         placement_drive.is_active == True,
         company.is_approved == True,
-        user.is_active == True).all()
+        user.is_active == True,
+        placement_drive.min_cgpa > cgpa,
+        ).all()
     
     return jsonify({
-        "ongoing_drives": [d.to_dict() for d in ongoing_drives],
+        "non_eligible_drives": [d.to_dict() for d in non_eligible_drives],
         "applied_drives": [d.to_dict() for d in applied_drives],
         "eligible_drives": [d.to_dict() for d in eligible_drives]}), 200
+
+@student_bp.route('/drives/<int:drive_id>/apply', methods=['POST'])
+@login_required
+@role_required('student')
+def apply(drive_id):
+
+    current_student = student.query.filter_by(user_id=current_user.id).first_or_404()
+    drive = placement_drive.query.filter_by(id = drive_id, is_active = True).first()
+
+    existing_application = application.query.filter_by(student_id = current_student.user_id, placement_drive_id = drive.id).first()
+    if existing_application:
+        return jsonify({"error": "Application already submitted!"}), 403
+    
+    if not drive.is_active:
+        return jsonify({"error": "This Drive has been closed!"}), 403
+    
+    cgpa = get_student_cgpa()
+    if drive.min_cgpa > cgpa:
+        return jsonify({"error": "You are not eligible to apply to this drive!"}), 403
+    
+    try:
+        new_application = application(
+            student_id = current_student.user_id,
+            placement_drive_id = drive.id
+        )
+
+        db.session.add(new_application)
+        db.session.commit()
+
+        return jsonify({"message": "Application submitted successfully"}), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        print(e)
+        return jsonify({"error": "Unexpected error! Application can't be submitted!"}), 403
+
+
+
     

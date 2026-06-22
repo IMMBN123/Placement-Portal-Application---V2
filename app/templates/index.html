@@ -1296,8 +1296,8 @@
                                 <div class="col-md-4">
                                     <div class="card text-white bg-primary dashboard-card">
                                         <div class="card-body">
-                                            <h5 class="card-title text-uppercase">Eligible Drives</h5>
-                                            <h2 class="mb-0 fw-bold">{{ studentDashboardData.stats?.eligibleDrives || 0 }}</h2>
+                                            <h5 class="card-title text-uppercase">Applied Drives</h5>
+                                            <h2 class="mb-0 fw-bold">{{ studentDashboardData.stats?.appliedDrives || 0 }}</h2>
                                         </div>
                                     </div>
                                 </div>
@@ -1337,11 +1337,14 @@
                             :columns="studentApplicationColumns"
                             :items="studentDashboardData.recentApplications || []">
                             <template #view-all="{ row }">
-                                    <button type="button" class="btn btn-primary" style="background-color: #5f8f8f;  border-color: #5f8f8f;">All Applications</button>
+                                    <button @click="fetchAllApplications" type="button" class="btn btn-primary" style="background-color: #5f8f8f;  border-color: #5f8f8f;">All Applications</button>
+                            </template>
+                            <template #cell-status="{ value }">
+                                <span :class="getStatusBadgeClass(value)">{{ value }}</span>
                             </template>
                             <template #table-actions="{ row }">
                                 <div style="display: flex; justify-content: center; gap: 5px;">
-                                    <button type="button" class="btn btn-sm btn-primary">View Response</button>
+                                    <button @click="viewApplication(row)" type="button" class="btn btn-sm btn-primary">View Response</button>
                                 </div>
                             </template>
                         </dashboard-table>
@@ -1559,6 +1562,9 @@
                             title="Applied Drives" 
                             :columns="studentDriveColumns"
                             :items="studentSearchData.appliedDrives || []">
+                            <template #view-all="{ row }">
+                                    <i class="bi bi-check2-circle" style="color:green; font-size: x-large;"></i>
+                            </template>
                             <template #table-actions="{ row }">
                                 <div style="display: flex; justify-content: center; gap: 5px;">
                                     <button @click="viewDrive(row)" type="button" class="btn btn-sm btn-primary">View Drive</button>
@@ -1575,10 +1581,13 @@
                                 </div>
                             </template>
                         </dashboard-table>
-                        <dashboard-table v-if="studentSearchData.ongoingDrives.length"
-                            title="Ongoing Drives" 
+                        <dashboard-table v-if="studentSearchData.nonEligibleDrives.length" style="box-shadow: 0 6px 10px #ff0000"
+                            title="Non-Eligible Drives" 
                             :columns="studentDriveColumns"
-                            :items="studentSearchData.ongoingDrives || []">
+                            :items="studentSearchData.nonEligibleDrives || []">
+                            <template #view-all="{ row }">
+                                    <i class="bi bi-x-circle" style="color: red; font-size: x-large;"></i>
+                            </template>
                             <template #table-actions="{ row }">
                                 <div style="display: flex; justify-content: center; gap: 5px;">
                                     <button @click="viewDrive(row)" type="button" class="btn btn-sm btn-primary">View Drive</button>
@@ -1589,19 +1598,25 @@
                             title="Active Applications"
                             :columns="studentApplicationColumns"
                             :items="studentSearchData.activeApplications || []">
+                            <template #cell-status="{ value }">
+                                <span :class="getStatusBadgeClass(value)">{{ value }}</span>
+                            </template>
                             <template #table-actions="{ row }">
                                 <div style="display: flex; justify-content: center; gap: 5px;">
-                                    <button type="button" class="btn btn-sm btn-primary">View Response</button>
+                                    <button @click="viewApplication(row)" type="button" class="btn btn-sm btn-primary">View Response</button>
                                 </div>
                             </template>
                         </dashboard-table>
-                        <dashboard-table v-if="studentSearchData.allApplications.length"
-                            title="All Applications"
+                        <dashboard-table v-if="studentSearchData.previousApplications.length"
+                            title="Previous Applications"
                             :columns="studentApplicationColumns"
-                            :items="studentSearchData.allApplications || []">
+                            :items="studentSearchData.previousApplications || []">
+                            <template #cell-status="{ value }">
+                                <span :class="getStatusBadgeClass(value)">{{ value }}</span>
+                            </template>
                             <template #table-actions="{ row }">
                                 <div style="display: flex; justify-content: center; gap: 5px;">
-                                    <button type="button" class="btn btn-sm btn-primary">View Response</button>
+                                    <button @click="viewApplication(row)" type="button" class="btn btn-sm btn-primary">View Response</button>
                                 </div>
                             </template>
                         </dashboard-table>
@@ -1615,16 +1630,54 @@
                             :drive="driveDetails"
                             :data="studentDashboardData">
                         </view-drive>
-                        <button v-if="studentDashboardData.eligibleDrives?.some(d => d.id === driveDetails.id)" type="button" class="btn btn-primary" style="background-color: #5f8f8f;  border-color: #5f8f8f;">Apply</button>
+                        <div style="display: flex; justify-content: center;">
+                            <button v-if="studentDashboardData.appliedDrives?.some(d => d.id === driveDetails.id)" type="button" class="btn btn-secondary" disabled>
+                                Applied
+                            </button>
+                            <button @click="applyDrive(driveDetails.id)" v-else-if="studentDashboardData.eligibleDrives?.some(d => d.id === driveDetails.id)" type="button" class="btn btn-primary" style="background-color: #5f8f8f;  border-color: #5f8f8f;" :disabled="isSubmitting">
+                                {{ isSubmitting? 'Applying...' : 'Apply'}}
+                            </button>
+                        </div>
                     </div>
                     <div v-else-if="studentView === 'all_drives'">
                         <div style="display: flex; justify-content: right;">
                             <button @click="studentView = 'main'" class="btn btn-link text-decoration-none text-secondary d-inline-flex align-items-center gap-2 p-0"><i class="bi bi-arrow-left" style="margin-right: 6px;"></i>Back to Dashboard</button>
                         </div>
+                        <div class="card">
+                            <div class="row mt-4">
+                                <div class="col-md-4">
+                                    <div class="card text-white bg-primary dashboard-card">
+                                        <div class="card-body">
+                                            <h5 class="card-title text-uppercase">Ongoing Drives</h5>
+                                            <h2 class="mb-0 fw-bold">{{ studentDashboardData.stats?.ongoingDrives || 0 }}</h2>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card text-white bg-info dashboard-card">
+                                        <div class="card-body">
+                                            <h5 class="card-title text-uppercase">Eligible Drives</h5>
+                                            <h2 class="mb-0 fw-bold">{{ studentDashboardData.stats?.eligibleDrives || 0 }}</h2>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card text-white bg-success dashboard-card">
+                                        <div class="card-body">
+                                            <h5 class="card-title text-uppercase">Applied Drives</h5>
+                                            <h2 class="mb-0 fw-bold">{{ studentDashboardData.stats?.appliedDrives || 0 }}</h2>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <dashboard-table v-if="studentDashboardData.appliedDrives.length"
                             title="Applied Drives" 
                             :columns="studentDriveColumns"
                             :items="studentDashboardData.appliedDrives || []">
+                            <template #view-all="{ row }">
+                                    <i class="bi bi-check2-circle" style="color:green; font-size: x-large;"></i>
+                            </template>
                             <template #table-actions="{ row }">
                                 <div style="display: flex; justify-content: center; gap: 5px;">
                                     <button @click="viewDrive(row)" type="button" class="btn btn-sm btn-primary">View Drive</button>
@@ -1641,16 +1694,98 @@
                                 </div>
                             </template>
                         </dashboard-table>
-                        <dashboard-table
-                            title="Ongoing Drives" 
+                        <dashboard-table v-if="studentDashboardData.nonEligibleDrives.length" style="box-shadow: 0 6px 10px #ff0000"
+                            title="Non-Eligible Drives" 
                             :columns="studentDriveColumns"
-                            :items="studentDashboardData.ongoingDrives || []">
+                            :items="studentDashboardData.nonEligibleDrives || []">
+                            <template #view-all="{ row }">
+                                    <i class="bi bi-x-circle" style="color: red; font-size: x-large;"></i>
+                            </template>
                             <template #table-actions="{ row }">
                                 <div style="display: flex; justify-content: center; gap: 5px;">
                                     <button @click="viewDrive(row)" type="button" class="btn btn-sm btn-primary">View Drive</button>
                                 </div>
                             </template>
                         </dashboard-table>
+                    </div>
+                    <div v-else-if="studentView === 'all_applications'">
+                        <div style="display: flex; justify-content: right;">
+                            <button @click="studentView = 'main'" class="btn btn-link text-decoration-none text-secondary d-inline-flex align-items-center gap-2 p-0"><i class="bi bi-arrow-left"></i>Back to Dashboard</button>
+                        </div>
+                        <div class="card">
+                            <div class="row g-3">
+                                <div class="col-6 col-lg-3">
+                                    <div class="card text-white bg-primary dashboard-card">
+                                        <div class="card-body">
+                                            <h6 class="card-title text-uppercase">Total Applications</h6>
+                                            <h2 class="mb-0 fw-bold">{{ studentDashboardData.stats?.totalApplications || 0 }}</h2>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-6 col-lg-3">
+                                    <div class="card text-white bg-warning dashboard-card">
+                                        <div class="card-body">
+                                            <h6 class="card-title text-uppercase">Shortlisted Applications</h6>
+                                            <h2 class="mb-0 fw-bold">{{ studentDashboardData.stats?.shortlistedApplications || 0 }}</h2>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-6 col-lg-3">
+                                    <div class="card text-white bg-success dashboard-card">
+                                        <div class="card-body">
+                                            <h6 class="card-title text-uppercase">Accepted Applications</h6>
+                                            <h2 class="mb-0 fw-bold">{{ studentDashboardData.stats?.acceptedApplications || 0 }}</h2>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-6 col-lg-3">
+                                    <div class="card text-white bg-danger dashboard-card">
+                                        <div class="card-body">
+                                            <h6 class="card-title text-uppercase">Rejected Applications</h6>
+                                            <h2 class="mb-0 fw-bold">{{ studentDashboardData.stats?.rejectedApplications || 0 }}</h2>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <dashboard-table v-if="studentDashboardData.activeApplications.length"
+                            title="Active Applications"
+                            :columns="studentApplicationColumns"
+                            :items="studentDashboardData.activeApplications || []">
+                            <template #cell-status="{ value }">
+                                <span :class="getStatusBadgeClass(value)">{{ value }}</span>
+                            </template>
+                            <template #table-actions="{ row }">
+                                <div style="display: flex; justify-content: center; gap: 5px;">
+                                    <button @click="viewApplication(row)" type="button" class="btn btn-sm btn-primary">View Response</button>
+                                </div>
+                            </template>
+                        </dashboard-table>
+                        <dashboard-table v-if="studentDashboardData.previousApplications.length"
+                            title="Previous Applications"
+                            :columns="studentApplicationColumns"
+                            :items="studentDashboardData.previousApplications || []">
+                            <template #cell-status="{ value }">
+                                <span :class="getStatusBadgeClass(value)">{{ value }}</span>
+                            </template>
+                            <template #table-actions="{ row }">
+                                <div style="display: flex; justify-content: center; gap: 5px;">
+                                    <button @click="viewApplication(row)" type="button" class="btn btn-sm btn-primary">View Response</button>
+                                </div>
+                            </template>
+                        </dashboard-table>
+                    </div>
+                    <div v-else-if="studentView === 'view_application'">
+                        <div style="display: flex; justify-content: right;">
+                            <button @click="studentView = 'main'" class="btn btn-link text-decoration-none text-secondary d-inline-flex align-items-center gap-2 p-0"><i class="bi bi-arrow-left"></i>Back to Dashboard</button>
+                        </div>
+                        <view-drive
+                            :drive="driveDetails"
+                            :data="studentDashboardData">
+                        </view-drive>
                     </div>
                 </div>
 
@@ -1768,7 +1903,7 @@
                                 </div>
                             </template>
                         </dashboard-table>
-                        <dashboard-table v-if="companyDashboardData.rejectedDrives.length" style="box-shadow: 0 6px 10px #ff0000";
+                        <dashboard-table v-if="companyDashboardData.rejectedDrives.length" style="box-shadow: 0 6px 10px #ff0000"
                             title="Rejected Drives" 
                             :columns="[
                                         {key: 'id', label: 'Drive ID'},

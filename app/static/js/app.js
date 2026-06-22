@@ -53,6 +53,21 @@ const App = {
             }
         };
 
+        const getStatusBadgeClass = (status) => {
+                    if (!status) return 'badge bg-secondary';
+                    const s = status.toLowerCase();
+                    if (s === 'accepted') {
+                        return 'badge bg-success-subtle text-success border border-success-subtle px-3 py-1';
+                    }
+                    if (s === 'shortlisted') {
+                        return 'badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-1';
+                    }
+                    if (s === 'rejected') {
+                        return 'badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1';
+                    }
+                    return 'badge bg-light text-dark border border-secondary-subtle px-3 py-1';
+                };
+
         let alertTimer=null;
 
         const showAlert = (message, type = 'success') => {
@@ -902,7 +917,7 @@ const App = {
         };
 
         const driveDetails = reactive({id: '', company_name: '', job_title: '', job_description: '', package_lpa: '',
-            vacancies: '', min_cgpa: '', deadline: '', created_at: ''
+            vacancies: '', min_cgpa: '', deadline: '', created_at: '', status: ''
         })
 
         const viewDrive = async(drive) => {
@@ -918,6 +933,7 @@ const App = {
             driveDetails.min_cgpa = drive.min_cgpa;
             driveDetails.deadline = drive.deadline;
             driveDetails.created_at = drive.created_at;
+            driveDetails.status = drive.status || '';
         }
 
         const getApplications = async(drive) => {
@@ -964,7 +980,8 @@ const App = {
                             acceptedApplications: data.accepted_applications,
                             rejectedApplications: data.rejected_applications,
                             ongoingDrives: data.ongoing_drives,
-                            eligibleDrives: data.eligible_drives
+                            eligibleDrives: data.eligible_drives,
+                            appliedDrives: data.applied_drives
                         }
                     };
                     await getEligibleDrives();
@@ -1006,7 +1023,7 @@ const App = {
                 if (response.ok) {
                     studentDashboardData.value.appliedDrives = data.applied_drives;
                     studentDashboardData.value.eligibleDrives = data.eligible_drives;
-                    studentDashboardData.value.ongoingDrives = data.ongoing_drives;
+                    studentDashboardData.value.nonEligibleDrives = data.non_eligible_drives;
                 } 
             } catch(error) {
                 console.error('Failed to fetch drives:', error)
@@ -1014,7 +1031,7 @@ const App = {
         };
 
         const studentApplicationColumns = ref([
-            {key: 'placement_drive_id', label: 'Drive ID'},
+            {key: 'id', label: 'Drive ID'},
             {key: 'company_id', label: 'Company ID'},
             {key: 'company_name', label: 'Company Name'},
             {key: 'applied_at', label: 'Applied On'},
@@ -1031,6 +1048,37 @@ const App = {
             } catch(error) {
                 console.error('Failed to fetch recent applications:', error)
             }
+        };
+
+        const fetchAllApplications = async() => {
+            try {
+                const response = await fetch('/api/student/applications')
+                if (response.ok) {
+                    const data = await response.json()
+                    studentDashboardData.value.previousApplications = data.previous_applications;
+                    studentDashboardData.value.activeApplications = data.active_applications;
+                    studentView.value = 'all_applications'
+                } else {
+                    showAlert("Couldn't fetch applications right now. Try again later!",'danger')
+                }
+            } catch(error) {
+                console.error('Error while fetching applications', error)
+                showAlert('Network Exception! Try again later', 'danger')
+            }
+        };
+
+        const viewApplication = async(drive) => {
+            driveDetails.id = drive.id;
+            driveDetails.company_name = drive.company_name;
+            driveDetails.job_title = drive.job_title;
+            driveDetails.job_description = drive.job_description;
+            driveDetails.package_lpa = drive.package_lpa;
+            driveDetails.vacancies = drive.vacancies;
+            driveDetails.min_cgpa = drive.min_cgpa;
+            driveDetails.deadline = drive.deadline;
+            driveDetails.created_at = drive.created_at;
+            driveDetails.status = drive.status || '';
+            studentView.value = 'view_application';
         };
 
         const studentProfile = ref({});
@@ -1106,9 +1154,9 @@ const App = {
                 if (response.ok) {
                     studentSearchData.value.appliedDrives = data.applied_drives;
                     studentSearchData.value.eligibleDrives = data.eligible_drives;
-                    studentSearchData.value.ongoingDrives = data.ongoing_drives;
+                    studentSearchData.value.nonEligibleDrives = data.non_eligible_drives;
                     studentSearchData.value.activeApplications = data.active_applications;
-                    studentSearchData.value.allApplications = data.all_applications;
+                    studentSearchData.value.previousApplications = data.previous_applications;
                     studentView.value = 'search';
                 }
                 else {
@@ -1121,6 +1169,27 @@ const App = {
             } finally {
                 isSubmitting.value = false;
             } 
+        };
+
+        const applyDrive = async(drive_id) => {
+            isSubmitting.value = true;
+            try{
+                const response = await fetch(`/api/student/drives/${drive_id}/apply`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                if (response.ok){
+                    showAlert(data.message, 'success');
+                } else {
+                    showAlert(data.error, 'danger');
+                }
+            } catch(error) {
+                console.error('Error while applying:',error);
+                showAlert("Network Exception!", 'danger')
+            } finally {
+                isSubmitting.value = false;
+            }
         };
 
         const triggerExport = async () => {
@@ -1153,7 +1222,7 @@ const App = {
             getAllDrives, fetchApplicationCounts, viewDrive, studentDashboardData ,fetchStudentDashboard,
             studentView, studentDriveColumns, getEligibleDrives, studentApplicationColumns, getRecentApplications,
             studentProfile, getStudentProfile, selfUpdateStudent, studentSearchData, getStudentSearch,
-            fetchAllDrives
+            fetchAllDrives, applyDrive, fetchAllApplications, viewApplication, getStatusBadgeClass
         };
     }
 };
@@ -1181,7 +1250,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         </thead>
                         <tbody>
                             <tr v-for="item in items" :key="item.id">
-                                <td v-for="col in columns" :key="col.key">{{ item[col.key] }}</td>
+                                <td v-for="col in columns" :key="col.key" class="align-middle">
+                                     <slot :name="'cell-' + col.key" :row="item" :value="item[col.key]">
+                                        {{ item[col.key] }}
+                                    </slot>
+                                </td>
                                 <td>
                                     <slot name="table-actions" :row="item"></slot>
                                 </td>
