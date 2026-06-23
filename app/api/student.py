@@ -64,7 +64,8 @@ def get_five_applications():
     results = db.session.query(
         placement_drive,         
         application.status,       
-        application.applied_at    
+        application.applied_at,
+        application.remarks    
     ).join(
         application, 
         placement_drive.id == application.placement_drive_id
@@ -74,11 +75,12 @@ def get_five_applications():
     
     summary_data = []
     
-    for drive, app_status, app_applied_at in results:
+    for drive, app_status, app_applied_at, app_remarks in results:
         drive_data = drive.to_dict()
         
         drive_data["status"] = app_status
         drive_data["applied_at"] = app_applied_at.isoformat() if app_applied_at else None
+        drive_data["remarks"] = app_remarks
         
         summary_data.append(drive_data)
 
@@ -92,7 +94,8 @@ def get_all_applications():
             placement_drive,
             application.id,
             application.status,
-            application.applied_at
+            application.applied_at,
+            application.remarks
         ).select_from(application)\
          .join(placement_drive, application.placement_drive_id == placement_drive.id)\
          .join(company, placement_drive.company_id == company.user_id)\
@@ -104,11 +107,12 @@ def get_all_applications():
              company.is_approved == True).all()
 
     active_applications_data = []
-    for drive, app_id, app_status, app_applied_at in active_results:
+    for drive, app_id, app_status, app_applied_at, app_remarks in active_results:
         drive_data = drive.to_dict()
         drive_data["application_id"] = app_id
         drive_data["status"] = app_status
         drive_data["applied_at"] = app_applied_at.isoformat() if app_applied_at else None
+        drive_data["remarks"] = app_remarks
         
         active_applications_data.append(drive_data)
 
@@ -116,7 +120,8 @@ def get_all_applications():
         placement_drive,
         application.id,
         application.status,
-        application.applied_at
+        application.applied_at,
+        application.remarks
     ).select_from(application)\
         .join(placement_drive, application.placement_drive_id == placement_drive.id)\
         .join(company, placement_drive.company_id == company.user_id)\
@@ -127,12 +132,13 @@ def get_all_applications():
             placement_drive.is_active == False).all()
 
     prev_applications_data = []
-    for drive, app_id, app_status, app_applied_at in previous_results:
+    for drive, app_id, app_status, app_applied_at, app_remarks in previous_results:
         drive_data = drive.to_dict()
         
         drive_data["application_id"] = app_id
         drive_data["status"] = app_status
         drive_data["applied_at"] = app_applied_at.isoformat() if app_applied_at else None
+        drive_data["remarks"] = app_remarks
         
         prev_applications_data.append(drive_data)
 
@@ -311,7 +317,8 @@ def student_search():
             placement_drive,
             application.id,
             application.status,
-            application.applied_at
+            application.applied_at,
+            application.remarks
             ).select_from(application)\
             .join(placement_drive, application.placement_drive_id == placement_drive.id)\
             .join(company, placement_drive.company_id == company.user_id)\
@@ -329,12 +336,13 @@ def student_search():
             ).all()
 
     active_applications_data = []
-    for drive, app_id, app_status, app_applied_at in active_applications:
+    for drive, app_id, app_status, app_applied_at, app_remarks in active_applications:
         drive_data = drive.to_dict()
         
         drive_data["application_id"] = app_id
         drive_data["status"] = app_status
         drive_data["applied_at"] = app_applied_at.isoformat() if app_applied_at else None
+        drive_data["remarks"] = app_remarks
         
         active_applications_data.append(drive_data)
 
@@ -342,7 +350,8 @@ def student_search():
         placement_drive,
         application.id,
         application.status,
-        application.applied_at
+        application.applied_at,
+        application.remarks
     ).select_from(application)\
         .join(placement_drive, application.placement_drive_id == placement_drive.id)\
         .join(company, placement_drive.company_id == company.user_id)\
@@ -359,12 +368,13 @@ def student_search():
         ).all()
 
     prev_applications_data = []
-    for drive, app_id, app_status, app_applied_at in prev_applications:
+    for drive, app_id, app_status, app_applied_at, app_remarks in prev_applications:
         drive_data = drive.to_dict()
     
         drive_data["application_id"] = app_id
         drive_data["status"] = app_status
         drive_data["applied_at"] = app_applied_at.isoformat() if app_applied_at else None
+        drive_data["remarks"] = app_remarks
         
         prev_applications_data.append(drive_data)
     

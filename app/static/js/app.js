@@ -936,7 +936,7 @@ const App = {
         };
 
         const driveDetails = reactive({id: '', company_name: '', job_title: '', job_description: '', package_lpa: '',
-            vacancies: '', min_cgpa: '', deadline: '', created_at: '', status: ''
+            vacancies: '', min_cgpa: '', deadline: '', created_at: '', status: '', remarks: ''
         })
 
         const viewDrive = async(drive) => {
@@ -1126,6 +1126,7 @@ const App = {
             driveDetails.deadline = drive.deadline;
             driveDetails.created_at = drive.created_at;
             driveDetails.status = drive.status || '';
+            driveDetails.remarks = drive.remarks || '';
             studentView.value = 'view_application';
         };
 
