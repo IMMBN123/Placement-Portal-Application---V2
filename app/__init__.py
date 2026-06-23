@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, render_template, send_from_directory
+from flask_migrate import Migrate
 from flask_login import LoginManager
 from config import Config
 from app.models import db, user 
@@ -9,6 +10,8 @@ load_dotenv()
 
 login_manager = LoginManager()
 
+migrate = Migrate()
+
 def create_app():
     # Initialise flask app
     app = Flask(__name__)
@@ -17,6 +20,7 @@ def create_app():
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
     db.init_app(app)
+    migrate.init_app(app, db, render_as_batch=True)
     login_manager.init_app(app)
 
     # Return JSON error instead of redirecting to a login page

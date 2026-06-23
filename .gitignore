@@ -6,3 +6,4 @@ static/uploads/*
 !static/uploads/.gitkeep
 __pycache__/
 app/__pycache__/
+migrations

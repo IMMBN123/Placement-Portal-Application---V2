@@ -139,6 +139,8 @@ class application(db.Model):
 
     student = db.relationship('student', backref=db.backref('applications', cascade='all, delete'))
     placement_drive = db.relationship('placement_drive', backref=db.backref('applications', cascade='all, delete'))
+    remarks = db.Column(db.String(255), default='New Application', server_default='New Application')
+
 
     def to_dict(self):
         return {
@@ -147,5 +149,6 @@ class application(db.Model):
             'placement_drive_id': self.placement_drive_id,
             'applied_at': self.applied_at.isoformat() if self.applied_at else None,
             'status': self.status,
-            'job_title': self.placement_drive.job_title if self.placement_drive else None
+            'job_title': self.placement_drive.job_title if self.placement_drive else None,
+            'remarks': self.remarks
         }

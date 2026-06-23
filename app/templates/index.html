@@ -1354,122 +1354,9 @@
                             <div style="display: flex; justify-content: right; width: 100%;">
                                 <button @click="studentView = 'main'" class="btn btn-link text-decoration-none text-secondary d-inline-flex align-items-center gap-2 p-0"><i class="bi bi-arrow-left"></i>Back to Dashboard</button>
                             </div>
-
-                            <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden mb-4">
-                                <div class="bg-primary bg-gradient" style="height: 100px; opacity: 0.85;"></div>
-                                <div class="card-body px-4 px-md-5 pb-5 position-relative">
-                                    <div class="position-absolute translate-middle-y start-4 start-md-5 bg-white shadow rounded-circle d-flex align-items-center justify-content-center border border-3 border-white" style="width: 100px; height: 100px; top: 0;">
-                                        <span class="fs-1 fw-bold text-primary text-uppercase">{{ studentProfile.full_name ? studentProfile.full_name[0] : 'S' }}</span>
-                                    </div>
-
-                                    <div style="display: flex; justify-content: space-between; width: 100%;">
-                                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3" style="margin-top: 60px;">
-                                            <div>
-                                                <h2 class="fw-bold text-dark mb-1">{{ studentProfile.full_name }}</h2>
-                                                <div class="d-flex flex-wrap align-items-center gap-2 text-muted small">
-                                                    <span><i class="bi bi-person-badge-fill me-1"></i>{{ studentProfile.roll_number }}</span>
-                                                    <span class="text-secondary">•</span>
-                                                    <span><i class="bi bi-mortarboard-fill me-1"></i>{{ studentProfile.branch }}</span>
-                                                    <span class="text-secondary">•</span>
-                                                    <span>Batch of {{ studentProfile.graduation_year }}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <button @click=getStudentData(studentProfile) style="height: fit-content;" class="btn btn-outline-primary">Update Profile</button>
-                                    </div>
-
-                                    <div class="row g-4 mt-4">
-                                        <div class="col-md-7">
-                                            <div class="card bg-light border-0 rounded-3 p-4 h-100">
-                                                <h4 class="h6 fw-bold text-uppercase text-muted tracking-wider mb-4">
-                                                    <i class="bi bi-grid-fill me-1"></i> Academic Summary
-                                                </h4>
-                                                
-                                                <div class="row g-3">
-                                                    <div class="col-6">
-                                                        <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Current CGPA</small>
-                                                        <span class="fs-3 fw-bold text-primary">{{ Number(studentProfile.cgpa).toFixed(2) }}</span>
-                                                    </div>
-                                                    <div class="col-6">
-                                                        <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Age</small>
-                                                        <span class="fs-3 fw-bold text-dark">{{ studentProfile.age }} Yrs</span>
-                                                    </div>
-                                                    <div class="col-6 mt-3">
-                                                        <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Department</small>
-                                                        <span class="fw-semibold text-dark">{{ studentProfile.branch }}</span>
-                                                    </div>
-                                                    <div class="col-6 mt-3">
-                                                        <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Graduation Year</small>
-                                                        <span class="fw-semibold text-dark">{{ studentProfile.graduation_year }}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-5">
-                                            <div class="card bg-light border-0 rounded-3 p-4 h-100">
-                                                <h4 class="h6 fw-bold text-uppercase text-muted tracking-wider mb-4">
-                                                    <i class="bi bi-telephone-fill me-1"></i> Contact & Profiles
-                                                </h4>
-
-                                                <div class="vstack gap-3">
-                                                    <div v-if="studentProfile.phone">
-                                                        <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Mobile Number</small>
-                                                        <span class="text-dark fw-medium small">
-                                                            <i class="bi bi-phone me-1 text-muted"></i>{{ studentProfile.phone }}
-                                                        </span>
-                                                    </div>
-
-                                                    <div v-if="studentProfile.email">
-                                                        <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Email Address</small>
-                                                        <span class="text-dark fw-medium small">
-                                                            <i class="bi bi-envelope me-1 text-muted"></i>{{ studentProfile.email }}
-                                                        </span>
-                                                    </div>
-
-                                                    <div v-if="studentProfile.linkedin_url">
-                                                        <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">LinkedIn Network</small>
-                                                        <a :href="studentProfile.linkedin_url" target="_blank" class="text-decoration-none text-primary fw-medium small d-inline-flex align-items-center gap-1">
-                                                            <i class="bi bi-linkedin"></i>
-                                                            <span>Connect on LinkedIn</span>
-                                                            <i class="bi bi-box-arrow-up-right text-muted" style="font-size: 0.75rem;"></i>
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-12" v-if="studentProfile.resume_link">
-                                            <div class="card border border-light-subtle rounded-3 p-4 bg-light shadow-sm">
-                                                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3">
-                                                    <div class="d-flex align-items-center gap-3">
-    
-                                                        <div class="bg-white border rounded overflow-hidden shadow-sm d-flex align-items-center justify-content-center" style="width: 58px; height: 58px; min-width: 58px;">
-                                                            <img v-if="['png', 'jpg', 'jpeg', 'webp'].some(ext => studentProfile.resume_link?.toLowerCase().endsWith(ext))"
-                                                                :src="'/static/uploads/' + studentProfile.resume_link" 
-                                                                alt="Resume Attachment" 
-                                                                class="img-fluid w-100 h-100"
-                                                                style="object-fit: cover;">
-                                                            <i v-else class="bi bi-file-earmark-pdf fs-4 text-danger"></i>
-                                                        </div>
-                                                        
-                                                        <div>
-                                                            <h6 class="fw-bold mb-0 text-dark">
-                                                                {{ ['png', 'jpg', 'jpeg', 'webp'].some(ext => studentProfile.resume_link?.toLowerCase().endsWith(ext)) ? 'Uploaded Resume' : 'Active Resume Sheet' }}
-                                                            </h6>
-                                                            <small class="text-muted text-break">Filename: {{ studentProfile.resume_link }}</small>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <a :href="'/static/uploads/' + studentProfile.resume_link" target="_blank" class="btn btn-primary rounded-pill px-4 py-2 small d-inline-flex align-items-center gap-2 align-self-start align-self-sm-center shadow-sm">
-                                                        <i class="bi bi-box-arrow-up-right"></i>
-                                                        <span>Open Resume</span>
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <view-student
+                                :profile="studentProfile">
+                            </view-student>
                         </div>
                     </div>
                     <div v-else-if="studentView === 'update_profile'">
@@ -2122,50 +2009,106 @@
                         </view-drive>
                         <dashboard-table v-if="companyDashboardData.new_applications.length"
                             title="New Applications" 
-                            :columns="applicationColumns" 
+                            :columns="companyApplicationColumns" 
                             :items="companyDashboardData.new_applications || []">
+                            <template #cell-status="{ value }">
+                                <span :class="getStatusBadgeClass(value)">{{ value }}</span>
+                            </template>
                             <template #table-actions="{ row }">
                                 <div style="display: flex; justify-content: center; gap: 5px;">
-                                    <button type="button" class="btn btn-outline-warning" style="color: #92400e; border-color: #92400e;">Details</button>
+                                    <button @click="viewStudentApplication(row)" type="button" class="btn btn-outline-warning" style="color: #92400e; border-color: #92400e;">Details</button>
                                 </div>
                             </template>
                         </dashboard-table>
                         <dashboard-table v-if="companyDashboardData.shortlisted_applications.length" style="box-shadow: 0 6px 10px #e49917;"
                             title="Shortlisted" 
-                            :columns="applicationColumns" 
+                            :columns="companyApplicationColumns" 
                             :items="companyDashboardData.shortlisted_applications || []">
+                            <template #cell-status="{ value }">
+                                <span :class="getStatusBadgeClass(value)">{{ value }}</span>
+                            </template>
                             <template #table-actions="{ row }">
                                 <div style="display: flex; justify-content: center; gap: 5px;">
-                                    <button type="button" class="btn btn-outline-warning" style="color: #92400e; border-color: #92400e;">Details</button>
+                                    <button @click="viewStudentApplication(row)" type="button" class="btn btn-outline-warning" style="color: #92400e; border-color: #92400e;">Details</button>
                                 </div>
                             </template>
                         </dashboard-table>
                         <dashboard-table v-if="companyDashboardData.accepted_applications.length" style="box-shadow: 0 6px 10px green;"
                             title="Accepted" 
-                            :columns="applicationColumns" 
+                            :columns="companyApplicationColumns" 
                             :items="companyDashboardData.accepted_applications || []">
+                            <template #cell-status="{ value }">
+                                <span :class="getStatusBadgeClass(value)">{{ value }}</span>
+                            </template>
                             <template #table-actions="{ row }">
                                 <div style="display: flex; justify-content: center; gap: 5px;">
-                                    <button type="button" class="btn btn-outline-warning" style="color: #92400e; border-color: #92400e;">Details</button>
+                                    <button @click="viewStudentApplication(row)" type="button" class="btn btn-outline-warning" style="color: #92400e; border-color: #92400e;">Details</button>
                                 </div>
                             </template>
                         </dashboard-table>
                         <dashboard-table v-if="companyDashboardData.rejected_applications.length" style="box-shadow: 0 6px 10px rgb(255, 0, 0);"
                             title="Rejected" 
-                            :columns="applicationColumns" 
+                            :columns="companyApplicationColumns" 
                             :items="companyDashboardData.rejected_applications || []">
-                            <template #view-all="{ row }">
-                                    <button type="button" class="btn btn-primary" style="background-color: #5f8f8f;  border-color: #5f8f8f;">All Applications</button>
+                            <template #cell-status="{ value }">
+                                <span :class="getStatusBadgeClass(value)">{{ value }}</span>
                             </template>
                             <template #table-actions="{ row }">
                                 <div style="display: flex; justify-content: center; gap: 5px;">
-                                    <button type="button" class="btn btn-outline-warning" style="color: #92400e; border-color: #92400e;">Details</button>
+                                    <button @click="viewStudentApplication(row)" type="button" class="btn btn-outline-warning" style="color: #92400e; border-color: #92400e;">Details</button>
                                 </div>
                             </template>
                         </dashboard-table>
                         <div v-if="companyDashboardData.new_applications.length == 0 && companyDashboardData.shortlisted_applications.length == 0 && companyDashboardData.rejected_applications.length == 0 && companyDashboardData.accepted_applications.length == 0" style="display: flex; justify-content: center;">
                             <p class="mb-0 fw-bold text-uppercase" style="color: #5f8f8f;">No Student Applications</p>
                         </div>
+                    </div>
+                    <div v-else-if="companyView === 'view_application'">
+                        <div style="display: flex; justify-content: space-between; width: 100%;">
+                            <button @click="companyView = 'view_drive'" class="btn btn-link text-decoration-none text-secondary d-inline-flex align-items-center gap-2 p-0"><i class="bi bi-arrow-left"></i>Back to Drive Page</button>
+                            <span :class="getStatusBadgeClass(studentProfile.status)">{{ studentProfile.status }}</span>
+                        </div>
+                        <view-student
+                            :profile="studentProfile">
+                        </view-student>
+                        <form @submit.prevent="updateApplicationStatus" class="row g-3 align-items-start">
+                            <div class="col-md-4" v-if="studentProfile.status !== 'Accepted' && studentProfile.status !== 'Rejected'">
+                                <label for="status" class="form-label fw-semibold text-secondary">Application Status:</label>
+                                
+                                <div v-if="studentProfile.status === 'Applied'">
+                                    <select id="status" class="form-select shadow-sm" v-model="studentProfile.status" style="border-radius: 8px;">
+                                        <option :value="studentProfile.status" disabled selected>{{ studentProfile.status }}</option>
+                                        <option value="Shortlisted">Shortlisted</option>
+                                        <option value="Rejected">Rejected</option>
+                                    </select>
+                                </div>
+                                
+                                <div v-if="studentProfile.status === 'Shortlisted'">
+                                    <select id="status" class="form-select shadow-sm" v-model="studentProfile.status" style="border-radius: 8px;">
+                                        <option :value="studentProfile.status" disabled selected>{{ studentProfile.status }}</option>
+                                        <option value="Accepted">Accepted</option>
+                                        <option value="Rejected">Rejected</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div :class="studentProfile.status !== 'Accepted' && studentProfile.status !== 'Rejected' ? 'col-md-8' : 'col-md-12'">
+                                <label for="remarks" class="form-label fw-semibold text-secondary">Remarks / Evaluation Feedback:</label>
+                                <textarea rows="2" 
+                                        id="remarks" 
+                                        class="form-control shadow-sm" 
+                                        v-model="studentProfile.remarks" 
+                                        placeholder="Enter dynamic remarks, evaluation points, or interview feedback here..." 
+                                        style="border-radius: 8px; resize: none;"></textarea>
+                            </div>
+
+                            <div class="col-12 mt-3 d-flex justify-content-end gap-2">
+                                <button type="submit" class="btn btn-primary rounded-pill px-4" :disabled="isSubmitting">
+                                    <i class="fa-solid fa-floppy-disk me-2"></i>
+                                    {{ isSubmitting ? 'Saving Status...' : 'Save Feedback' }}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>

@@ -734,6 +734,24 @@ const App = {
             {key: 'application_count', label: 'Applicants'}
         ]);
 
+        const companyApplicationColumns = ref([
+            {key: 'roll_number', label: 'Student Roll Number'},
+            {key: 'full_name', label: 'Student Name'},
+            {key: 'cgpa', label: 'Student CGPA'},
+            {key: 'applied_at', label: 'Applied On'},
+            {key: 'status', label: 'Status'}
+        ]);
+
+        const viewStudentApplication = async(app) => {
+            try {
+                studentProfile.value = app;
+                companyView.value = 'view_application';
+            } catch (error) {
+                console.error("Error while opening application:", error)
+                showAlert("Unable to load application! Try again later", 'danger')
+            }
+        };
+
         const fetchCompanyDashboard = async () => {
             try {
                 const response = await fetch('/api/company/dashboard');
@@ -825,6 +843,7 @@ const App = {
                 }
             }
         };
+
 
         const companyProfile = reactive({
             user_id: '',
@@ -962,6 +981,35 @@ const App = {
             } catch(error) {
                 console.error('Error while fetching applications:', error);
                 showAlert("Unexpected behaviour encountered.", 'danger')
+            }
+        };
+
+        const updateApplicationStatus = async() => {
+            isSubmitting.value = true;
+            const profileData = studentProfile.value ? studentProfile.value : studentProfile;
+            const app_id = profileData.id || profileData.application_id;
+            const payload = {
+                status: profileData.status,
+                remarks: profileData.remarks
+            };
+            try{
+                const response = await fetch(`/api/company/applications/${app_id}/update`, {
+                    method: 'POST',
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (response.ok){
+                    await viewStudentApplication(profileData);
+                    showAlert(data.message, 'success');
+                } else {
+                    showAlert(data.error, 'danger');
+                }
+            } catch(error) {
+                console.error("Error while updating status:",error);
+                showAlert("Network error while updating status! Try again later",'danger')
+            } finally {
+                isSubmitting.value = false;
             }
         };
 
@@ -1222,7 +1270,8 @@ const App = {
             getAllDrives, fetchApplicationCounts, viewDrive, studentDashboardData ,fetchStudentDashboard,
             studentView, studentDriveColumns, getEligibleDrives, studentApplicationColumns, getRecentApplications,
             studentProfile, getStudentProfile, selfUpdateStudent, studentSearchData, getStudentSearch,
-            fetchAllDrives, applyDrive, fetchAllApplications, viewApplication, getStatusBadgeClass
+            fetchAllDrives, applyDrive, fetchAllApplications, viewApplication, getStatusBadgeClass,
+            companyApplicationColumns, viewStudentApplication, updateApplicationStatus
         };
     }
 };
@@ -1368,6 +1417,127 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         </div>
     `
+    });
+
+    app.component('view-student',{
+    props:['profile'],
+    template: `
+        <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden mb-4">
+            <div class="bg-primary bg-gradient" style="height: 100px; opacity: 0.85;"></div>
+            <div class="card-body px-4 px-md-5 pb-5 position-relative">
+                <div class="position-absolute translate-middle-y start-4 start-md-5 bg-white shadow rounded-circle d-flex align-items-center justify-content-center border border-3 border-white" style="width: 100px; height: 100px; top: 0;">
+                    <span class="fs-1 fw-bold text-primary text-uppercase">{{ profile.full_name ? profile.full_name[0] : 'S' }}</span>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; width: 100%;">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3" style="margin-top: 60px;">
+                        <div>
+                            <h2 class="fw-bold text-dark mb-1">{{ profile.full_name }}</h2>
+                            <div class="d-flex flex-wrap align-items-center gap-2 text-muted small">
+                                <span><i class="bi bi-person-badge-fill me-1"></i>{{ profile.roll_number }}</span>
+                                <span class="text-secondary">•</span>
+                                <span><i class="bi bi-mortarboard-fill me-1"></i>{{ profile.branch }}</span>
+                                <span class="text-secondary">•</span>
+                                <span>Batch of {{ profile.graduation_year }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button v-if="user && user.role === 'student'" @click=getStudentData(profile) style="height: fit-content;" class="btn btn-outline-primary">Update Profile</button>
+                </div>
+
+                <div class="row g-4 mt-4">
+                    <div class="col-md-7">
+                        <div class="card bg-light border-0 rounded-3 p-4 h-100">
+                            <h4 class="h6 fw-bold text-uppercase text-muted tracking-wider mb-4">
+                                <i class="bi bi-grid-fill me-1"></i> Academic Summary
+                            </h4>
+                            
+                            <div class="row g-3">
+                                <div class="col-6">
+                                    <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Current CGPA</small>
+                                    <span class="fs-3 fw-bold text-primary">{{ Number(profile.cgpa).toFixed(2) }}</span>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Age</small>
+                                    <span class="fs-3 fw-bold text-dark">{{ profile.age }} Yrs</span>
+                                </div>
+                                <div class="col-6 mt-3">
+                                    <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Department</small>
+                                    <span class="fw-semibold text-dark">{{ profile.branch }}</span>
+                                </div>
+                                <div class="col-6 mt-3">
+                                    <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Graduation Year</small>
+                                    <span class="fw-semibold text-dark">{{ profile.graduation_year }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="card bg-light border-0 rounded-3 p-4 h-100">
+                            <h4 class="h6 fw-bold text-uppercase text-muted tracking-wider mb-4">
+                                <i class="bi bi-telephone-fill me-1"></i> Contact & Profiles
+                            </h4>
+
+                            <div class="vstack gap-3">
+                                <div v-if="profile.phone">
+                                    <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Mobile Number</small>
+                                    <span class="text-dark fw-medium small">
+                                        <i class="bi bi-phone me-1 text-muted"></i>{{ profile.phone }}
+                                    </span>
+                                </div>
+
+                                <div v-if="profile.email">
+                                    <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Email Address</small>
+                                    <span class="text-dark fw-medium small">
+                                        <i class="bi bi-envelope me-1 text-muted"></i>{{ profile.email }}
+                                    </span>
+                                </div>
+
+                                <div v-if="profile.linkedin_url">
+                                    <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">LinkedIn Network</small>
+                                    <a :href="profile.linkedin_url" target="_blank" class="text-decoration-none text-primary fw-medium small d-inline-flex align-items-center gap-1">
+                                        <i class="bi bi-linkedin"></i>
+                                        <span>Connect on LinkedIn</span>
+                                        <i class="bi bi-box-arrow-up-right text-muted" style="font-size: 0.75rem;"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12" v-if="profile.resume_link">
+                        <div class="card border border-light-subtle rounded-3 p-4 bg-light shadow-sm">
+                            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3">
+                                <div class="d-flex align-items-center gap-3">
+
+                                    <div class="bg-white border rounded overflow-hidden shadow-sm d-flex align-items-center justify-content-center" style="width: 58px; height: 58px; min-width: 58px;">
+                                        <img v-if="['png', 'jpg', 'jpeg', 'webp'].some(ext => profile.resume_link?.toLowerCase().endsWith(ext))"
+                                            :src="'/static/uploads/' + profile.resume_link" 
+                                            alt="Resume Attachment" 
+                                            class="img-fluid w-100 h-100"
+                                            style="object-fit: cover;">
+                                        <i v-else class="bi bi-file-earmark-pdf fs-4 text-danger"></i>
+                                    </div>
+                                    
+                                    <div>
+                                        <h6 class="fw-bold mb-0 text-dark">
+                                            {{ ['png', 'jpg', 'jpeg', 'webp'].some(ext => profile.resume_link?.toLowerCase().endsWith(ext)) ? 'Uploaded Resume' : 'Active Resume Sheet' }}
+                                        </h6>
+                                        <small class="text-muted text-break">Filename: {{ profile.resume_link }}</small>
+                                    </div>
+                                </div>
+                                
+                                <a :href="'/static/uploads/' + profile.resume_link" target="_blank" class="btn btn-primary rounded-pill px-4 py-2 small d-inline-flex align-items-center gap-2 align-self-start align-self-sm-center shadow-sm">
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                    <span>Open Resume</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `
     });
 
     app.mount('#app');

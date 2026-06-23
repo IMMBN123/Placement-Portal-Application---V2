@@ -166,11 +166,59 @@ def get_application_count(drive_id):
 @login_required
 @role_required("company")
 def get_applications(drive_id):
-    new_applications = application.query.join(student).join(user).filter(application.placement_drive_id == drive_id, user.is_active == True, application.status == 'Applied').all()
-    shortlisted_applications = application.query.join(student).join(user).filter(application.placement_drive_id == drive_id, user.is_active == True, application.status == 'Shortlisted').all()
-    rejected_applications = application.query.join(student).join(user).filter(application.placement_drive_id == drive_id, user.is_active == True, application.status == 'Rejected').all()
-    accepted_applications = application.query.join(student).join(user).filter(application.placement_drive_id == drive_id, user.is_active == True, application.status == 'Accepted').all()
-    return jsonify({"new_applications": [a.to_dict() for a in new_applications],
-                    "shortlisted_applications": [a.to_dict() for a in shortlisted_applications],
-                    "rejected_applications": [a.to_dict() for a in rejected_applications],
-                    "accepted_applications": [a.to_dict() for a in accepted_applications],}), 200
+    all_apps = application.query.join(student).join(user).filter(
+        application.placement_drive_id == drive_id,
+        user.is_active == True,
+    ).all()
+
+    new_apps = []
+    accepted_apps = []
+    shortlisted_apps = []
+    rejected_apps = []
+
+    for app in all_apps:
+        # Combines all columns of both tables into a unified JSON object
+        app_data = {**app.student.to_dict(), **app.to_dict()}
+        
+        status_lower = app.status.lower()
+        if status_lower == 'applied':
+            new_apps.append(app_data)
+        elif status_lower == 'accepted':
+            accepted_apps.append(app_data)
+        elif status_lower == 'shortlisted':
+            shortlisted_apps.append(app_data)
+        elif status_lower == 'rejected':
+            rejected_apps.append(app_data)
+
+    return jsonify({
+        "new_applications": new_apps,
+        "accepted_applications": accepted_apps,
+        "shortlisted_applications": shortlisted_apps,
+        "rejected_applications": rejected_apps
+    }), 200
+
+@company_bp.route('/applications/<int:app_id>/update', methods=['POST'])
+@login_required
+@role_required('company')
+def update_app_status(app_id):
+    app = application.query.get_or_404(app_id)
+
+    if app.placement_drive.company_id != current_user.id:
+        return jsonify({"error": "Unauthorized Action"}), 403
+    
+    data = request.get_json()
+    
+    try:
+        new_status = data.get('status').strip()
+        remark = data.get('remarks').strip()
+
+        app.status = new_status
+        app.remarks = remark
+
+        db.session.commit()
+        return jsonify({"message": f"Application Status was successfully updated to '{new_status}'"}), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        print("Error while updating status:", e)
+        return jsonify({"error": "An internal database error occurred while saving updates.", "details": str(e)}), 500
