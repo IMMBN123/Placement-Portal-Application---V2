@@ -6,7 +6,7 @@ const App = {
         const isLoading = ref(true);
         const isSubmitting = ref(false);
         const alertMessage = ref('');
-        const alertType = ref('success')
+        const alertType = ref('success');
         const loginForm = reactive({ email: '', password: '' });
         const dashboardData = ref({});
         const allSearchData = ref({}); 
@@ -54,21 +54,21 @@ const App = {
         };
 
         const getStatusBadgeClass = (status) => {
-                    if (!status) return 'badge bg-secondary';
-                    const s = status.toLowerCase();
-                    if (s === 'accepted') {
-                        return 'badge bg-success-subtle text-success border border-success-subtle px-3 py-1';
-                    }
-                    if (s === 'shortlisted') {
-                        return 'badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-1';
-                    }
-                    if (s === 'rejected') {
-                        return 'badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1';
-                    }
-                    return 'badge bg-light text-dark border border-secondary-subtle px-3 py-1';
-                };
+            if (!status) return 'badge bg-secondary';
+            const s = status.toLowerCase();
+            if (s === 'accepted') {
+                return 'badge bg-success-subtle text-success border border-success-subtle px-3 py-1';
+            }
+            if (s === 'shortlisted') {
+                return 'badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-1';
+            }
+            if (s === 'rejected') {
+                return 'badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1';
+            }
+            return 'badge bg-light text-dark border border-secondary-subtle px-3 py-1';
+        };
 
-        let alertTimer=null;
+        let alertTimer = null;
 
         const showAlert = (message, type = 'success') => {
             alertMessage.value = message;
@@ -104,7 +104,7 @@ const App = {
                         await fetchStudentDashboard();
                         studentView.value = 'main';
                     }  
-                    else{
+                    else {
                         await fetchCompanyDashboard(); 
                         companyView.value = 'main';
                     }
@@ -154,13 +154,13 @@ const App = {
                 const data = await response.json();
 
                 if (response.ok) {
-                    showAlert('Registration successful! Please login now.', 'success')
+                    showAlert('Registration successful! Please login now.', 'success');
                     authView.value = 'login';
 
                     for (let key in studentForm) studentForm[key] = '';
                     studentResumeFile.value = null;
                 } else {
-                    showAlert( data.error || 'Registration failed.', 'danger');
+                    showAlert(data.error || 'Registration failed.', 'danger');
                 }
             } catch (error) {
                 console.error(error);
@@ -188,12 +188,12 @@ const App = {
                 const data = await response.json();
 
                 if (response.ok) {
-                    showAlert('Registration successful! Await admin approval.', 'success')
+                    showAlert('Registration successful! Await admin approval.', 'success');
                     authView.value = 'login';
 
                     for (let key in companyForm) companyForm[key] = '';
                 } else {
-                    showAlert( data.error || 'Registration failed.', 'danger');
+                    showAlert(data.error || 'Registration failed.', 'danger');
                 }
             } catch (error) {
                 console.error(error);
@@ -225,6 +225,7 @@ const App = {
                     await getPendingCompanies();
                     await getFiveDrives();
                     await getPendingDrives();
+                    await getFiveApplications();
                 }
             } catch (error) {
                 showAlert("Failed to load admin dashboard data.", 'danger');
@@ -257,7 +258,7 @@ const App = {
         const applicationColumns = ref([
             {key: 'placement_drive_id', label: 'Drive ID'},
             {key: 'roll_number', label: 'Student Roll Number'},
-            {key: 'company_id', label: 'Company ID'},
+            {key: 'user_id', label: 'Company ID'},
             {key: 'company_name', label: 'Company Name'},
             {key: 'applied_at', label: 'Applied On'},
             {key: 'status', label: 'Status'}
@@ -293,10 +294,10 @@ const App = {
         }
 
         const updateStudentForm = reactive({
-                    user_id: '', email: '', full_name: '', roll_number: '',
-                    branch: '', age: '', graduation_year: '', cgpa: '',
-                    phone: '', linkedin_url: '', resume_link: ''
-                });
+            user_id: '', email: '', full_name: '', roll_number: '',
+            branch: '', age: '', graduation_year: '', cgpa: '',
+            phone: '', linkedin_url: '', resume_link: ''
+        });
 
         const getStudentData = (student) => {
             updateStudentForm.user_id = student.user_id;
@@ -310,10 +311,9 @@ const App = {
             updateStudentForm.phone = student.phone;
             updateStudentForm.linkedin_url = student.linkedin_url || '';
 
-            if (user.value.role === 'admin') adminView.value = 'update_company';
+            if (user.value.role === 'admin') adminView.value = 'update_student';
             if (user.value.role === 'student') studentView.value = 'update_profile';
         };
-
 
         const updateStudent = async () => {
             isSubmitting.value = true;
@@ -328,7 +328,16 @@ const App = {
 
                 if (response.ok) {
                     showAlert(data.message || "Student profile updated successfully!", "success");
-                    adminView.value = 'main';
+                    if (appDetails.value && appDetails.value.user_id === updateStudentForm.user_id) {
+                        appDetails.value = { 
+                            ...appDetails.value,
+                            ...updateStudentForm
+                        };
+                        
+                        adminView.value = 'view_student';
+                    } else {
+                        adminView.value = 'main';
+                    }
                     await fetchAdminDashboard();
                 } else {
                     showAlert(data.error || "Update failed.", "danger");
@@ -383,9 +392,9 @@ const App = {
         }
 
         const updateCompanyForm = reactive({
-                    user_id: '', email: '', company_name: '', industry: '',
-                    website: '', phone: '', description: ''
-                });
+            user_id: '', email: '', company_name: '', industry: '',
+            website: '', phone: '', description: ''
+        });
 
         const getCompanyData = (company) => {
             updateCompanyForm.user_id = company.user_id;
@@ -399,7 +408,6 @@ const App = {
             if (user.value.role === 'admin') adminView.value = 'update_company';
             if (user.value.role === 'company') companyView.value = 'update_profile';
         };
-
 
         const updateCompany = async () => {
             isSubmitting.value = true;
@@ -489,7 +497,7 @@ const App = {
             isSubmitting.value = true;
 
             try {
-                const response = await fetch(`api/admin/search/all?q=${encodeURIComponent(search_term.value.trim())}`, {
+                const response = await fetch(`/api/admin/search/all?q=${encodeURIComponent(search_term.value.trim())}`, {
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json' }
                 });
@@ -507,13 +515,13 @@ const App = {
                     allSearchData.value.closed_drives = data.closed_drives;
                     allSearchData.value.drives_by_blacklisted_companies = data.drives_by_blacklisted_companies;
                     allSearchData.value.pending_drives = data.pending_drives;
-                    allSearchData.value.current_applications = data.current_applications
-                    allSearchData.value.applications_for_closed_drives = data.applications_for_closed_drives
-                    allSearchData.value.applications_for_blacklisted_companies = data.applications_for_blacklisted_companies
-                    allSearchData.value.applications_by_blacklisted_students = data.applications_by_blacklisted_students
+                    allSearchData.value.current_applications = data.current_applications;
+                    allSearchData.value.applications_for_closed_drives = data.applications_for_closed_drives;
+                    allSearchData.value.applications_for_blacklisted_companies = data.applications_for_blacklisted_companies;
+                    allSearchData.value.applications_by_blacklisted_students = data.applications_by_blacklisted_students;
                 }
                 else {
-                    adminView.value = 'main'
+                    adminView.value = 'main';
                     showAlert(data.error || "Something unexpected happened. Please try again", 'danger');
                 }
             } catch (error) {
@@ -527,7 +535,6 @@ const App = {
         const toggleBlacklist = async (userItem) => {
             isSubmitting.value = true;
             
-            // Fallback logic to check if your row key is named 'user_id' or standard 'id'
             const targetId = userItem.user_id;
             
             try {
@@ -566,7 +573,6 @@ const App = {
         const deleteUser = async (userItem) => {
             isSubmitting.value = true;
             
-            // Fallback logic to check if your row key is named 'user_id' or standard 'id'
             const targetId = userItem.user_id;
             
             try {
@@ -595,12 +601,11 @@ const App = {
         };
 
         const executeModalAction = async () => {
-            showConfirmModal.value = false; // Hide the popup instantly
+            showConfirmModal.value = false; 
             
             if (activeModalItem.value) {
-                // Run the master toggleBlacklist routine passing our safely cached item reference
                 await deleteUser(activeModalItem.value);
-                activeModalItem.value = null; // Flush cache allocation space clean
+                activeModalItem.value = null; 
             }
         };
 
@@ -609,7 +614,6 @@ const App = {
             alertMessage.value = '';
             
             try {
-                // Use backticks (``) to pass the company ID straight through the URL path
                 const response = await fetch(`/api/admin/companies/${company.user_id}/approve`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
@@ -625,7 +629,7 @@ const App = {
                 }
             } catch (error) {
                 console.error("Network error processing approval:", error);
-                showAlert( data.error || 'A netwrok error occured.', 'danger');
+                showAlert( data.error || 'A network error occured.', 'danger');
             } finally {
                 isSubmitting.value = false;
                 await fetchAdminDashboard();
@@ -654,7 +658,7 @@ const App = {
                 }
             } catch (error) {
                 console.error("Network error processing rejection:", error);
-                showAlert( data.error || 'A netwrok error occured.', 'danger');
+                showAlert( data.error || 'A network error occured.', 'danger');
             } finally {
                 isSubmitting.value = false;
                 await fetchAdminDashboard();
@@ -683,11 +687,23 @@ const App = {
                 }
             } catch (error) {
                 console.error("Network error processing approval:", error);
-                showAlert( data.error || 'A netwrok error occured.', 'danger');
+                showAlert( data.error || 'A network error occured.', 'danger');
             } finally {
                 isSubmitting.value = false;
                 await fetchAdminDashboard();
                 if (adminView.value == 'all_search'){await getAllSearch();}
+            }
+        };
+
+        const appDetails = ref({});
+
+        const adminViewApplication = async(app) => {
+            try{
+                appDetails.value = app;
+                adminView.value = 'view_application';
+            } catch(error){
+                console.error("Error while viewing application: ",error);
+                showAlert("Unable to fetch application! Try again", "danger");
             }
         };
 
@@ -711,7 +727,7 @@ const App = {
                 }
             } catch (error) {
                 console.error("Network error processing rejection:", error);
-                showAlert( data.error || 'A netwrok error occured.', 'danger');
+                showAlert( data.error || 'A network error occured.', 'danger');
             } finally {
                 isSubmitting.value = false;
                 await fetchAdminDashboard();
@@ -719,12 +735,12 @@ const App = {
             }
         };
 
-        const companyView = ref('main')
-        const companyDashboardData = ref({})
+        const companyView = ref('main');
+        const companyDashboardData = ref({});
         const driveForm = reactive({
             job_title: '', min_cgpa: '', package_lpa: '', vacancies: '', location: '',
             deadline: '', job_description: ''
-        })
+        });
 
         const companyDriveColumns = ref([
             {key: 'id', label: 'Drive ID'},
@@ -747,8 +763,8 @@ const App = {
                 studentProfile.value = app;
                 companyView.value = 'view_application';
             } catch (error) {
-                console.error("Error while opening application:", error)
-                showAlert("Unable to load application! Try again later", 'danger')
+                console.error("Error while opening application:", error);
+                showAlert("Unable to load application! Try again later", 'danger');
             }
         };
 
@@ -809,11 +825,11 @@ const App = {
             try{
                 const response = await fetch('/api/company/drives');
                 if (response.ok) {
-                    const data = await response.json()
+                    const data = await response.json();
                     companyDashboardData.value.ongoingDrives = data.ongoing_drives;
                     companyDashboardData.value.pendingDrives = data.pending_drives;
                     companyDashboardData.value.closedDrives = data.closed_drives;
-                    companyDashboardData.value.rejectedDrives = data.rejected_drives
+                    companyDashboardData.value.rejectedDrives = data.rejected_drives;
 
                     await fetchApplicationCounts(companyDashboardData.value.ongoingDrives);
                     await fetchApplicationCounts(companyDashboardData.value.pendingDrives);
@@ -822,7 +838,7 @@ const App = {
                 }
             } catch (error) {
                 console.error('Error while retrieving drives:',error);
-                showAlert("Something unexpected happened!", 'danger')
+                showAlert("Something unexpected happened!", 'danger');
             }
         }
 
@@ -911,7 +927,7 @@ const App = {
         const closeDrive = async(drive) => {
             isSubmitting.value = true;
             try {
-                const response = await fetch(`api/company/drives/${drive.id}/close`, {
+                const response = await fetch(`/api/company/drives/${drive.id}/close`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                 });
@@ -922,7 +938,7 @@ const App = {
                     showAlert(data.error, 'danger');
             } catch(error) {
                 console.error("Error while closing drive:", error);
-                showAlert("A network exception occured! Try again", "danger")
+                showAlert("A network exception occured! Try again", "danger");
             } finally {
                 isSubmitting.value = false;
                 if (user.value.role == 'admin') {
@@ -937,7 +953,7 @@ const App = {
 
         const driveDetails = reactive({id: '', company_name: '', job_title: '', job_description: '', package_lpa: '',
             vacancies: '', min_cgpa: '', deadline: '', created_at: '', status: '', remarks: ''
-        })
+        });
 
         const viewDrive = async(drive) => {
             if (user.value.role == 'admin') adminView.value = 'view_drive';
@@ -980,7 +996,7 @@ const App = {
                 }
             } catch(error) {
                 console.error('Error while fetching applications:', error);
-                showAlert("Unexpected behaviour encountered.", 'danger')
+                showAlert("Unexpected behaviour encountered.", 'danger');
             }
         };
 
@@ -1007,7 +1023,7 @@ const App = {
                 }
             } catch(error) {
                 console.error("Error while updating status:",error);
-                showAlert("Network error while updating status! Try again later",'danger')
+                showAlert("Network error while updating status! Try again later",'danger');
             } finally {
                 isSubmitting.value = false;
             }
@@ -1037,10 +1053,10 @@ const App = {
                     await fetchAllDrives();
 
                 } else {
-                    console.error('Response not ok while fetching dashboard stats')
+                    console.error('Response not ok while fetching dashboard stats');
                 }
             } catch (error) {
-                console.error("Error while fetching student dashboard data:".error)
+                console.error("Error while fetching student dashboard data:", error);
             }
         };
 
@@ -1060,8 +1076,8 @@ const App = {
                     studentDashboardData.value.fiveDrives = data.eligible_drives;
                 } 
             } catch(error) {
-                console.error('Failed to fetch eligible drives:', error)
-                }
+                console.error('Failed to fetch eligible drives:', error);
+            }
         };
 
         const fetchAllDrives = async() => {
@@ -1074,8 +1090,8 @@ const App = {
                     studentDashboardData.value.nonEligibleDrives = data.non_eligible_drives;
                 } 
             } catch(error) {
-                console.error('Failed to fetch drives:', error)
-                }
+                console.error('Failed to fetch drives:', error);
+            }
         };
 
         const studentApplicationColumns = ref([
@@ -1094,24 +1110,24 @@ const App = {
                 studentDashboardData.value.recentApplications = data.recent_applications;
             } 
             } catch(error) {
-                console.error('Failed to fetch recent applications:', error)
+                console.error('Failed to fetch recent applications:', error);
             }
         };
 
         const fetchAllApplications = async() => {
             try {
-                const response = await fetch('/api/student/applications')
+                const response = await fetch('/api/student/applications');
                 if (response.ok) {
-                    const data = await response.json()
+                    const data = await response.json();
                     studentDashboardData.value.previousApplications = data.previous_applications;
                     studentDashboardData.value.activeApplications = data.active_applications;
-                    studentView.value = 'all_applications'
+                    studentView.value = 'all_applications';
                 } else {
-                    showAlert("Couldn't fetch applications right now. Try again later!",'danger')
+                    showAlert("Couldn't fetch applications right now. Try again later!",'danger');
                 }
             } catch(error) {
-                console.error('Error while fetching applications', error)
-                showAlert('Network Exception! Try again later', 'danger')
+                console.error('Error while fetching applications', error);
+                showAlert('Network Exception! Try again later', 'danger');
             }
         };
 
@@ -1135,7 +1151,7 @@ const App = {
         const getStudentProfile = async() => {
             isSubmitting.value = true;
             try {
-                const response = await fetch('/api/student/profile')
+                const response = await fetch('/api/student/profile');
                 if (response.ok) {
                     const data = await response.json();
                     studentProfile.value = data.profile;
@@ -1145,7 +1161,7 @@ const App = {
                 }
             } catch(error){
                 console.error('error while getting profile', error);
-                showAlert('Unexpected behavior encountered!', 'danger')
+                showAlert('Unexpected behavior encountered!', 'danger');
             } finally {
                 isSubmitting.value = false;
             }
@@ -1180,7 +1196,7 @@ const App = {
                     showAlert(data.error || "Update failed.", "danger");
                 }
             } catch (error) {
-                console.error("Error while updating:",error)
+                console.error("Error while updating:",error);
                 showAlert("A network error occurred while submitting Student modifications.", "danger");
             } finally {
                 isSubmitting.value = false;
@@ -1193,7 +1209,7 @@ const App = {
             isSubmitting.value = true;
 
             try {
-                const response = await fetch(`api/student/search?q=${encodeURIComponent(search_term.value.trim())}`, {
+                const response = await fetch(`/api/student/search?q=${encodeURIComponent(search_term.value.trim())}`, {
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json' }
                 });
@@ -1209,7 +1225,7 @@ const App = {
                     studentView.value = 'search';
                 }
                 else {
-                    studentView.value = 'main'
+                    studentView.value = 'main';
                     showAlert(data.error || "Something unexpected happened. Please try again", 'danger');
                 }
             } catch (error) {
@@ -1235,7 +1251,7 @@ const App = {
                 }
             } catch(error) {
                 console.error('Error while applying:',error);
-                showAlert("Network Exception!", 'danger')
+                showAlert("Network Exception!", 'danger');
             } finally {
                 isSubmitting.value = false;
             }
@@ -1272,7 +1288,8 @@ const App = {
             studentView, studentDriveColumns, getEligibleDrives, studentApplicationColumns, getRecentApplications,
             studentProfile, getStudentProfile, selfUpdateStudent, studentSearchData, getStudentSearch,
             fetchAllDrives, applyDrive, fetchAllApplications, viewApplication, getStatusBadgeClass,
-            companyApplicationColumns, viewStudentApplication, updateApplicationStatus
+            companyApplicationColumns, viewStudentApplication, updateApplicationStatus, adminViewApplication,
+            appDetails
         };
     }
 };
@@ -1421,7 +1438,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     app.component('view-student',{
-    props:['profile'],
+    props:['profile','user'],
     template: `
         <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden mb-4">
             <div class="bg-primary bg-gradient" style="height: 100px; opacity: 0.85;"></div>
@@ -1443,7 +1460,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                         </div>
                     </div>
-                    <button v-if="user && user.role === 'student'" @click=getStudentData(profile) style="height: fit-content;" class="btn btn-outline-primary">Update Profile</button>
+                    <button v-if="user && user.role === 'student' || user.role === 'admin'" 
+                    @click="$emit('trigger-update', profile)"
+                    style="height: fit-content;" class="btn btn-outline-primary">Update Profile</button>
                 </div>
 
                 <div class="row g-4 mt-4">
@@ -1539,6 +1558,60 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         </div>
         `
+    });
+
+    app.component('view-status',{
+    props:['details'],
+    template: ` 
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-4 mt-4">                 
+            <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                <h5 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+                    <i class="bi bi-person-badge text-primary"></i> 
+                    <span>Application Status</span>
+                </h5>
+                
+                <span class="badge px-3 py-2 rounded-pill fw-semibold fs-7" 
+                    :class="{
+                        'bg-success-subtle text-success border border-success-subtle': details.status === 'Accepted',
+                        'bg-danger-subtle text-danger border border-danger-subtle': details.status === 'Rejected',
+                        'bg-warning-subtle text-warning-emphasis border border-warning-subtle': details.status === 'Shortlisted',
+                        'bg-info-subtle text-info-emphasis border border-info-subtle': details.status === 'Applied'
+                    }">
+                    {{ details.status }}
+                </span>
+            </div>
+
+            <div class="progress mb-3" style="height: 6px; border-radius: 10px;">
+                <div class="progress-bar rounded-pill" 
+                    role="progressbar" 
+                    :class="{
+                        'bg-success': details.status === 'Accepted',
+                        'bg-danger': details.status === 'Rejected',
+                        'bg-warning': details.status === 'Shortlisted',
+                        'bg-info': details.status === 'Applied'
+                    }"
+                    :style="{ 
+                        width: details.status === 'Applied' ? '30%' : 
+                                details.status === 'Shortlisted' ? '65%' : '100%' 
+                    }">
+                </div>
+            </div>
+
+            <div class="p-3 bg-light rounded-3 border-start border-3"
+                :class="{
+                    'border-success': details.status === 'Accepted',
+                    'border-danger': details.status === 'Rejected',
+                    'border-warning': details.status === 'Shortlisted',
+                    'border-info': details.status === 'Applied'
+                }">
+                <small class="d-block text-uppercase text-muted fw-bold mb-1" style="font-size: 0.7rem;">Recruiter Feedback</small>
+                <p class="mb-0 text-secondary small lh-base">
+                    {{ details.remarks || "Application is currently being evaluated by the corporate recruiter. Specific remarks will appear here once published." }}
+                </p>
+            </div>
+
+        </div>
+    `
     });
 
     app.mount('#app');

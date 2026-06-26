@@ -313,16 +313,24 @@ def get_five_applications():
     student_user = aliased(user, name="student_user")
     company_user = aliased(user, name="company_user")
 
-    applications = application.query\
+    apps = application.query\
         .join(student, application.student_id == student.user_id)\
         .join(student_user, student.user_id == student_user.id)\
         .join(placement_drive, application.placement_drive_id == placement_drive.id)\
         .join(company, placement_drive.company_id == company.user_id)\
         .join(company_user, company.user_id == company_user.id)\
-        .filter(placement_drive.is_active == True, placement_drive.is_active == True,
-                company_user.is_active == True, student_user.is_active == True , company.is_approved == True).limit(5).all()
-    application_data = [a.to_dict() for a in applications]
-    return jsonify({"five_applications": application_data}), 200
+        .filter(
+            placement_drive.is_active == True,
+            student_user.is_active == True,
+            company_user.is_active == True,
+            company.is_approved == True).all()
+
+    all_apps = []
+    for app in apps:
+        app_data = {**app.student.to_dict(), **app.placement_drive.to_dict(), **app.placement_drive.company.to_dict(), **app.to_dict()}
+        all_apps.append(app_data)
+    
+    return ({"five_applications": all_apps}), 200
 
 @admin_bp.route('/applications', methods=["GET"])
 @login_required
