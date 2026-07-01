@@ -216,7 +216,11 @@ const App = {
                             pending_companies: data.pending_companies,
                             pending_drives: data.pending_drives,
                             blacklisted_students: data.blacklisted_students,
-                            blacklisted_companies: data.blacklisted_companies
+                            blacklisted_companies: data.blacklisted_companies,
+                            all_applications: data.all_applications,
+                            shortlisted_applications: data.shortlisted_applications,
+                            accepted_applications: data.accepted_applications,
+                            rejected_applications: data.rejected_applications
                         }
                     };
 
@@ -491,6 +495,24 @@ const App = {
             }
         };
 
+        const getAllApplications = async () => {
+            try {
+                const response = await fetch('/api/admin/applications');
+                if (response.ok) {
+                    const data = await response.json();
+
+                    dashboardData.value.currentApplications = data.current_applications;
+                    dashboardData.value.applicationsForClosedDrives = data.applications_for_closed_drives;
+                    dashboardData.value.applicationsForBlacklistedCompanies = data.applications_for_blacklisted_companies;
+                    dashboardData.value.applicationsByBlacklistedStudents = data.applications_by_blacklisted_students;
+
+                    adminView.value = 'all_applications';
+                }
+            } catch (error) {
+                console.error("Failed to fetch applications:", error);
+            }
+        };
+
         const search_term = ref('');
 
         const getAllSearch = async () => {
@@ -519,6 +541,10 @@ const App = {
                     allSearchData.value.applications_for_closed_drives = data.applications_for_closed_drives;
                     allSearchData.value.applications_for_blacklisted_companies = data.applications_for_blacklisted_companies;
                     allSearchData.value.applications_by_blacklisted_students = data.applications_by_blacklisted_students;
+
+                    await fetchApplicationCounts(allSearchData.value.ongoing_drives);
+                    await fetchApplicationCounts(allSearchData.value.closed_drives);
+                    await fetchApplicationCounts(allSearchData.value.drives_by_blacklisted_companies);
                 }
                 else {
                     adminView.value = 'main';
@@ -972,8 +998,9 @@ const App = {
         }
 
         const getApplications = async(drive) => {
+            const id = drive.placement_drive_id || drive.id;
             try {
-                const response = await fetch(`/api/company/drives/${drive.id}/applications`, {
+                const response = await fetch(`/api/company/drives/${id}/applications`, {
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json' },
                 });
@@ -1289,7 +1316,7 @@ const App = {
             studentProfile, getStudentProfile, selfUpdateStudent, studentSearchData, getStudentSearch,
             fetchAllDrives, applyDrive, fetchAllApplications, viewApplication, getStatusBadgeClass,
             companyApplicationColumns, viewStudentApplication, updateApplicationStatus, adminViewApplication,
-            appDetails
+            appDetails, getAllApplications
         };
     }
 };
@@ -1611,6 +1638,83 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
 
         </div>
+    `
+    });
+
+    app.component('view-company',{
+    props:['profile'],
+    template: ` 
+    <div>
+        <div class="card border-0 mb-4 rounded-4">
+            <div class="card-body p-4 p-md-5">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+                    <div>
+                        <h1 class="h3 fw-bold mb-1">{{ profile.company_name }}</h1>
+                        <p class="text-muted mb-0 small">
+                            <i class="bi bi-tag-fill me-1 text-secondary"></i>Industry: {{ profile.industry }}
+                        </p>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge bg-success-subtle text-success border border-success rounded-pill px-3 py-2">
+                            <i class="bi bi-check-circle-fill me-1"></i> Approved </span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button @click="$emit('trigger-update', profile)" style="height: fit-content;" class="btn btn-outline-primary">Update Profile</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-7 col-lg-8">
+                <div class="card h-100 border-0 rounded-4">
+                    <div class="card-body p-4">
+                        <h3 class="h6 fw-bold text-secondary text-uppercase tracking-wider mb-3">
+                            <i class="bi bi-info-circle me-1"></i> Profile Description
+                        </h3>
+                        <p class="card-text text-muted lh-lg" style="font-size: 0.95rem;">
+                            {{ profile.description }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-5 col-lg-4">
+                <div class="card h-100 border-0 rounded-4">
+                    <div class="card-body p-4">
+                        <h3 class="h6 fw-bold text-secondary text-uppercase tracking-wider mb-3">
+                            Contact
+                        </h3>
+                        <div class="vstack gap-3">
+                        
+                            <div>
+                                <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.75rem;">Website</small>
+                                <a :href="profile.website" class="text-decoration-none text-primary fw-medium small" target="_blank">
+                                    {{ profile.website }}
+                                </a>
+                            </div>
+
+                            <div>
+                                <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.75rem;">Phone</small>
+                                <span class="text-dark small fw-medium">
+                                    <i class="bi bi-telephone me-1 text-muted"></i> +91 {{ profile.phone }}
+                                </span>
+                            </div>
+
+                            <div>
+                                <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.75rem;">Registered Email</small>
+                                <span class="text-dark small fw-medium">
+                                    {{ profile.email }}
+                                </span>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
     `
     });
 

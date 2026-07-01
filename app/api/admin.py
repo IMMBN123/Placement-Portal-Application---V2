@@ -19,6 +19,43 @@ def get_dashboard_stats():
     blacklisted_students = student.query.join(user).filter(user.is_deleted == False, student.is_blacklisted == True).count()
     blacklisted_companies = company.query.join(user).filter(user.is_deleted==False, company.is_blacklisted==True, company.is_approved==True).count()
 
+    student_user = aliased(user, name="student_user")
+    company_user = aliased(user, name="company_user")
+
+    all_application_count = application.query\
+        .join(student, application.student_id == student.user_id)\
+        .join(student_user, student.user_id == student_user.id)\
+        .join(placement_drive, application.placement_drive_id == placement_drive.id)\
+        .join(company, placement_drive.company_id == company.user_id)\
+        .join(company_user, company.user_id == company_user.id)\
+        .filter(student_user.is_deleted == False, company_user.is_deleted == False).count()
+    
+    accepted_application_count = application.query\
+        .join(student, application.student_id == student.user_id)\
+        .join(student_user, student.user_id == student_user.id)\
+        .join(placement_drive, application.placement_drive_id == placement_drive.id)\
+        .join(company, placement_drive.company_id == company.user_id)\
+        .join(company_user, company.user_id == company_user.id)\
+        .filter(student_user.is_deleted == False, company_user.is_deleted == False, application.status == 'Accepted').count()
+    
+    shortlisted_application_count = application.query\
+        .join(student, application.student_id == student.user_id)\
+        .join(student_user, student.user_id == student_user.id)\
+        .join(placement_drive, application.placement_drive_id == placement_drive.id)\
+        .join(company, placement_drive.company_id == company.user_id)\
+        .join(company_user, company.user_id == company_user.id)\
+        .filter(student_user.is_deleted == False, company_user.is_deleted == False, application.status == 'Shortlisted').count()
+    
+    rejected_application_count = application.query\
+        .join(student, application.student_id == student.user_id)\
+        .join(student_user, student.user_id == student_user.id)\
+        .join(placement_drive, application.placement_drive_id == placement_drive.id)\
+        .join(company, placement_drive.company_id == company.user_id)\
+        .join(company_user, company.user_id == company_user.id)\
+        .filter(student_user.is_deleted == False, company_user.is_deleted == False, application.status == 'Rejected').count()
+
+
+
     return jsonify({
         "active_students": student_count,
         "active_companies": company_count,
@@ -26,7 +63,11 @@ def get_dashboard_stats():
         "pending_companies": pending_companies,
         "pending_drives": pending_drives,
         "blacklisted_students": blacklisted_students,
-        "blacklisted_companies": blacklisted_companies
+        "blacklisted_companies": blacklisted_companies,
+        "all_applications": all_application_count,
+        "shortlisted_applications": shortlisted_application_count,
+        "accepted_applications": accepted_application_count,
+        "rejected_applications": rejected_application_count
     }), 200
 
 @admin_bp.route('/glance/companies', methods=['GET'])
@@ -336,10 +377,42 @@ def get_five_applications():
 @login_required
 @role_required('admin')
 def get_all_applications():
-    applications = application.query.join(placement_drive).join(student).all()
-    application_data = [a.to_dict() for a in applications]
-    return jsonify({"applications": application_data}), 200
 
+    student_user = aliased(user, name="student_user")
+    company_user = aliased(user, name="company_user")
+
+    all_apps = application.query\
+        .join(student, application.student_id == student.user_id)\
+        .join(student_user, student.user_id == student_user.id)\
+        .join(placement_drive, application.placement_drive_id == placement_drive.id)\
+        .join(company, placement_drive.company_id == company.user_id)\
+        .join(company_user, company.user_id == company_user.id).all()
+
+    current_apps = []
+    apps_for_closed_drives = []
+    apps_for_blacklisted_companies = []
+    apps_by_blacklisted_students = []
+
+    for app in all_apps:
+        app_data = {**app.student.to_dict(), **app.to_dict(), **app.placement_drive.to_dict(), **app.placement_drive.company.to_dict()}
+
+    if student_user.is_active and company_user.is_active and company.is_approved:
+        if placement_drive.is_active:
+            current_apps.append(app_data)
+        else:
+            apps_for_closed_drives.append(app_data)
+    
+    elif not company_user.is_deleted and company.is_blacklisted and company.is_approved == True:
+        apps_for_blacklisted_companies.append(app_data)
+
+    elif student.is_blacklisted and not student_user.is_deleted:
+        apps_by_blacklisted_students.append(app_data)
+
+    return jsonify({"current_applications": current_apps,
+                    "applications_for_closed_drives": apps_for_closed_drives,
+                    "applications_for_blacklisted_companies": apps_for_blacklisted_companies,
+                    "applications_by_blacklisted_students": apps_by_blacklisted_students}), 200
+        
 @admin_bp.route("/user/<int:id>/delete", methods=["DELETE"])
 @login_required
 @role_required('admin')
@@ -479,17 +552,13 @@ def global_search():
     student_user = aliased(user, name="student_user")
     company_user = aliased(user, name="company_user")
 
-    current_applications = application.query\
+    all_apps = application.query\
         .join(student, application.student_id == student.user_id)\
         .join(student_user, student.user_id == student_user.id)\
         .join(placement_drive, application.placement_drive_id == placement_drive.id)\
         .join(company, placement_drive.company_id == company.user_id)\
         .join(company_user, company.user_id == company_user.id)\
         .filter(
-            placement_drive.is_active == True,
-            student_user.is_active == True,
-            company_user.is_active == True,
-            company.is_approved == True,
             or_(
                 placement_drive.job_title.ilike(search_term),
                 student.full_name.ilike(search_term),     
@@ -498,61 +567,27 @@ def global_search():
             )
         ).all()
     
-    applications_for_closed_drives = application.query\
-        .join(student, application.student_id == student.user_id)\
-        .join(student_user, student.user_id == student_user.id)\
-        .join(placement_drive, application.placement_drive_id == placement_drive.id)\
-        .join(company, placement_drive.company_id == company.user_id)\
-        .join(company_user, company.user_id == company_user.id)\
-        .filter(
-            placement_drive.is_active == False,
-            student_user.is_active == True,
-            company_user.is_active == True,
-            company.is_approved == True,
-            or_(
-                placement_drive.job_title.ilike(search_term),
-                student.full_name.ilike(search_term),     
-                student.roll_number.ilike(search_term),
-                company.company_name.ilike(search_term)
-            )
-        ).all()
+    current_apps = []
+    apps_for_closed_drives = []
+    apps_for_blacklisted_companies = []
+    apps_by_blacklisted_students = []
+
+    for app in all_apps:
+        app_data = {**app.student.to_dict(), **app.to_dict(), **app.placement_drive.to_dict(), **app.placement_drive.company.to_dict()}
+
+    if student_user.is_active and company_user.is_active and company.is_approved:
+        if placement_drive.is_active:
+            current_apps.append(app_data)
+        else:
+            apps_for_closed_drives.append(app_data)
     
-    applications_for_blacklisted_companies = application.query\
-        .join(student, application.student_id == student.user_id)\
-        .join(student_user, student.user_id == student_user.id)\
-        .join(placement_drive, application.placement_drive_id == placement_drive.id)\
-        .join(company, placement_drive.company_id == company.user_id)\
-        .join(company_user, company.user_id == company_user.id)\
-        .filter(
-            company_user.is_deleted == False,
-            company.is_blacklisted == True,
-            company.is_approved == True,
-            or_(
-                placement_drive.job_title.ilike(search_term),
-                student.full_name.ilike(search_term),     
-                student.roll_number.ilike(search_term),
-                company.company_name.ilike(search_term)
-            )
-        ).all()
+    elif not company_user.is_deleted and company.is_blacklisted and company.is_approved == True:
+        apps_for_blacklisted_companies.append(app_data)
+
+    elif student.is_blacklisted and not student_user.is_deleted:
+        apps_by_blacklisted_students.append(app_data)
     
-    applications_by_blacklisted_students = application.query\
-        .join(student, application.student_id == student.user_id)\
-        .join(student_user, student.user_id == student_user.id)\
-        .join(placement_drive, application.placement_drive_id == placement_drive.id)\
-        .join(company, placement_drive.company_id == company.user_id)\
-        .join(company_user, company.user_id == company_user.id)\
-        .filter(
-            student.is_blacklisted == True,
-            student_user.is_deleted == False,
-            or_(
-                placement_drive.job_title.ilike(search_term),
-                student.full_name.ilike(search_term),     
-                student.roll_number.ilike(search_term),
-                company.company_name.ilike(search_term)
-            )
-        ).all()
-    
-    if not active_students and not blacklisted_students and not active_companies and not blacklisted_companies and not pending_companies and not ongoing_drives and not closed_drives and not drives_by_blaclisted_companies and not pending_drives and not current_applications and not applications_for_closed_drives and not applications_for_blacklisted_companies and not applications_by_blacklisted_students:
+    if not active_students and not blacklisted_students and not active_companies and not blacklisted_companies and not pending_companies and not ongoing_drives and not closed_drives and not drives_by_blaclisted_companies and not pending_drives and not current_apps and not apps_for_closed_drives and not apps_for_blacklisted_companies and not apps_by_blacklisted_students:
         return jsonify({"error": "Search term has no match!"}), 404
 
     return jsonify({
@@ -565,10 +600,10 @@ def global_search():
         "closed_drives": [d.to_dict() for d in closed_drives],
         "drives_by_blacklisted_companies": [d.to_dict() for d in drives_by_blaclisted_companies],
         "pending_drives": [d.to_dict() for d in pending_drives],
-        "current_applications": [a.to_dict() for a in current_applications],
-        "applications_for_closed_drives": [a.to_dict() for a in applications_for_closed_drives],
-        "applications_for_blacklisted_companies": [a.to_dict() for a in applications_for_blacklisted_companies],
-        "applications_by_blacklisted_students": [a.to_dict() for a in applications_by_blacklisted_students],
+        "current_applications":  current_apps,
+        "applications_for_closed_drives": apps_for_closed_drives,
+        "applications_for_blacklisted_companies": apps_for_blacklisted_companies,
+        "applications_by_blacklisted_students": apps_by_blacklisted_students,
     }), 200
 
 

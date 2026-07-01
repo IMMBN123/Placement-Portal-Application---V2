@@ -178,7 +178,7 @@ def get_applications(drive_id):
 
     for app in all_apps:
         # Combines all columns of both tables into a unified JSON object
-        app_data = {**app.student.to_dict(), **app.to_dict()}
+        app_data = {**app.student.to_dict(), **app.to_dict(), **app.placement_drive.to_dict(), **app.placement_drive.company.to_dict()}
         
         status_lower = app.status.lower()
         if status_lower == 'applied':
