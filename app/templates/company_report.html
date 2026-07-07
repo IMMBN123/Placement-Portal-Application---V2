@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light" style="background-color: #f4f7f6; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 30px 10px; margin: 0;">
+    
+    <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 650px; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        
+        <tr>
+            <td class="bg-dark text-white text-center py-4" style="background-color: #212529; color: #ffffff; padding: 24px; text-align: center;">
+                <h2 class="mb-1" style="margin: 0; font-size: 24px; font-weight: 600;">Monthly Placement Analytics</h2>
+                <p style="margin: 5px 0 0 0; font-size: 15px; color: #adb5bd;">{{ month_name }} {{ year }} | {{ company_name }}</p>
+            </td>
+        </tr>
+
+        <tr>
+            <td class="card-body p-4" style="padding: 30px; color: #333333;">
+                <p class="lead" style="font-size: 18px; margin-bottom: 20px;">Hello <strong>{{ company_name }}</strong> Team,</p>
+                <p style="margin-bottom: 30px; line-height: 1.6;">Thank you for partnering with our institute. Here is your automated analytics report summarizing your recruitment drive activity for the past month.</p>
+                
+                <table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 30px;">
+                    <tr>
+                        <td class="bg-primary text-white text-center rounded" style="background-color: #0d6efd; color: #ffffff; padding: 20px 10px; border-radius: 6px; text-align: center; width: 31%;">
+                            <p style="margin: 0 0 5px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Applications</p>
+                            <h2 style="margin: 0; font-size: 28px;">{{ total_applications }}</h2>
+                        </td>
+                        <td style="width: 3.5%;"></td> <td class="bg-warning text-dark text-center rounded" style="background-color: #ffc107; color: #212529; padding: 20px 10px; border-radius: 6px; text-align: center; width: 31%;">
+                            <p style="margin: 0 0 5px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Shortlisted</p>
+                            <h2 style="margin: 0; font-size: 28px;">{{ total_shortlisted }}</h2>
+                        </td>
+                        <td style="width: 3.5%;"></td> <td class="bg-success text-white text-center rounded" style="background-color: #198754; color: #ffffff; padding: 20px 10px; border-radius: 6px; text-align: center; width: 31%;">
+                            <p style="margin: 0 0 5px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Hired</p>
+                            <h2 style="margin: 0; font-size: 28px;">{{ total_hired }}</h2>
+                        </td>
+                    </tr>
+                </table>
+
+                <h4 class="mb-3" style="font-size: 18px; margin-bottom: 15px; color: #212529;">Role-wise Analytics</h4>
+                <table class="table table-bordered table-striped" width="100%" border="0" cellpadding="12" cellspacing="0" style="border-collapse: collapse; margin-bottom: 30px; font-size: 14px;">
+                    <thead>
+                        <tr>
+                            <th class="bg-light" style="background-color: #f8f9fa; border: 1px solid #dee2e6; text-align: left; color: #495057;">Drive ID</th>
+                            <th class="bg-light" style="background-color: #f8f9fa; border: 1px solid #dee2e6; text-align: left; color: #495057;">Job Role</th>
+                            <th class="bg-light" style="background-color: #f8f9fa; border: 1px solid #dee2e6; text-align: center; color: #495057;">Applied</th>
+                            <th class="bg-light" style="background-color: #f8f9fa; border: 1px solid #dee2e6; text-align: center; color: #495057;">Interviews</th>
+                            <th class="bg-light" style="background-color: #f8f9fa; border: 1px solid #dee2e6; text-align: center; color: #495057;">Selected</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for role in roles_data %}
+                        <tr>
+                            <td style="border: 1px solid #dee2e6; text-align: center;">{{ role.id }}</td>
+                            <td style="border: 1px solid #dee2e6; font-weight: 500;">{{ role.title }}</td>
+                            <td style="border: 1px solid #dee2e6; text-align: center;">{{ role.applied }}</td>
+                            <td style="border: 1px solid #dee2e6; text-align: center;">{{ role.interviews }}</td>
+                            <td style="border: 1px solid #dee2e6; text-align: center; color: #198754; font-weight: bold;">{{ role.selected }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted" style="border: 1px solid #dee2e6; text-align: center; color: #6c757d; font-style: italic;">No active drives recorded for this month.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <hr class="mt-4" style="border: 0; border-top: 1px solid #e9ecef; margin: 30px 0;">
+                
+                <p class="text-muted text-center small" style="color: #868e96; text-align: center; font-size: 12px; margin: 0; line-height: 1.5;">
+                    This is an automated performance report generated by the Placement Portal System.<br>
+                    If you have any questions regarding these statistics, please contact the placement cell.
+                </p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

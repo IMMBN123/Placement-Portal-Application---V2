@@ -5,6 +5,7 @@ from config import Config
 from app.models import db, user 
 import os
 from dotenv import load_dotenv
+from celery import Celery, Task
 
 load_dotenv()
 
@@ -12,10 +13,30 @@ login_manager = LoginManager()
 
 migrate = Migrate()
 
+celery_app = None
+
+class FlaskTask(Task):
+        def __call__(self, *args, **kwargs):
+            with celery_app.flask_app.app_context():
+                return self.run(*args, **kwargs)
+
+def celery_init_app(app: Flask) -> Celery:
+    global celery_app
+
+    celery_app = Celery(app.name, task_cls=FlaskTask)
+    celery_app.flask_app = app
+
+    celery_app.config_from_object(app.config.get("CELERY", {}))
+    celery_app.set_default()
+    app.extensions["celery"] = celery_app
+    return celery_app
+
 def create_app():
     # Initialise flask app
     app = Flask(__name__)
     app.config.from_object(Config)
+    
+    celery_init_app(app)
 
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
@@ -43,7 +64,7 @@ def create_app():
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
     try:
-        from utils import auto_close_expired_drives
+        from app.utils import auto_close_expired_drives
         @app.before_request
         def handle_drive_expiry():
             auto_close_expired_drives()

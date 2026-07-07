@@ -1,10 +1,12 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 from sqlalchemy.orm import aliased
 from app.models import db, user, company, student, placement_drive, application
 from app.utils import role_required
-from datetime import datetime
+from datetime import datetime, date
+from app.tasks import export_company_drives_csv
+from celery.result import AsyncResult
 
 company_bp = Blueprint('company', __name__, url_prefix='/api/company')
 
@@ -44,9 +46,9 @@ def create_drive():
         location = request.form.get('location')
         deadline = datetime.strptime(
                 request.form.get("deadline"),
-                "%Y-%m-%d")
+                "%Y-%m-%d").date()
         
-        if deadline < datetime.now():
+        if deadline < date.today():
             return jsonify({"error":"Deadline cannot be in past"}), 400
 
         if min_cgpa < 0 or min_cgpa > 10:
@@ -178,7 +180,11 @@ def get_applications(drive_id):
 
     for app in all_apps:
         # Combines all columns of both tables into a unified JSON object
-        app_data = {**app.student.to_dict(), **app.to_dict(), **app.placement_drive.to_dict(), **app.placement_drive.company.to_dict()}
+        app_data = { **app.student.to_dict(), **app.placement_drive.to_dict(), **app.placement_drive.company.to_dict(), **app.to_dict(),
+                    "application_id": app.id,
+                    "student_id": app.student.user_id,
+                    "drive_id": app.placement_drive.id,
+                    "company_id": app.placement_drive.company.user_id}
         
         status_lower = app.status.lower()
         if status_lower == 'applied':
@@ -211,9 +217,14 @@ def update_app_status(app_id):
     try:
         new_status = data.get('status').strip()
         remark = data.get('remarks').strip()
+        interview_time = datetime.fromisoformat(data.get('interview_at').strip())
+
+        if new_status == 'Shortlisted' and not interview_time:
+            return jsonify({"error": "Please select a time for interview"})
 
         app.status = new_status
         app.remarks = remark
+        app.interview_at = interview_time
 
         db.session.commit()
         return jsonify({"message": f"Application Status was successfully updated to '{new_status}'"}), 200
@@ -222,3 +233,10 @@ def update_app_status(app_id):
         db.session.rollback()
         print("Error while updating status:", e)
         return jsonify({"error": "An internal database error occurred while saving updates.", "details": str(e)}), 500
+    
+@company_bp.route('/drives/export', methods=['POST'])
+@login_required
+@role_required('company')
+def trigger_export():
+    task = export_company_drives_csv.delay(current_user.id)
+    return jsonify({"task_id": task.id}), 202

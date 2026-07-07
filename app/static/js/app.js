@@ -1027,13 +1027,35 @@ const App = {
             }
         };
 
+        const calculateLocalMinTime = () => {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            return now.toISOString().slice(0, 16);
+        }
+
+        const minTime = calculateLocalMinTime();
+
         const updateApplicationStatus = async() => {
             isSubmitting.value = true;
             const profileData = studentProfile.value ? studentProfile.value : studentProfile;
             const app_id = profileData.id || profileData.application_id;
+            
+            if (profileData.status === 'Shortlisted' && profileData.interview_at) {
+                const formattedDate = new Date(profileData.interview_at).toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                });
+
+                profileData.remarks = `You have been Shortlisted. Interview Scheduled at ${formattedDate}`;
+                }
             const payload = {
                 status: profileData.status,
-                remarks: profileData.remarks
+                remarks: profileData.remarks,
+                interview_at: profileData.interview_at
             };
             try{
                 const response = await fetch(`/api/company/applications/${app_id}/update`, {
@@ -1284,12 +1306,66 @@ const App = {
             }
         };
 
-        const triggerExport = async () => {
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        const exportCSV = async () => {
             isExporting.value = true;
-            setTimeout(() => {
-                isExporting.value = false;
-                alertMessage.value = "Export complete (Mocked)!";
-            }, 2000);
+            
+            try {
+                showAlert("Export started. Please wait...", 'success');
+
+                let response;
+
+                if (user.value.role === 'student'){
+                    response = await fetch('/api/student/applications/export', {
+                        method: 'POST'
+                    });
+                } else if (user.value.role === 'company'){
+                    response = await fetch('/api/company/drives/export', {
+                        method: 'POST'
+                    });
+                }
+                
+                if (!response.ok) {
+                    showAlert('Failed to start export.', 'danger');
+                    return;
+                }
+
+                const data = await response.json(); 
+                const taskId = data.task_id;
+                
+                let isDone = false;
+                
+                while (!isDone) {
+                    const statusResponse = await fetch(`/api/student/export/status/${taskId}`);
+                    
+                    if (statusResponse.ok) {
+                        const statusData = await statusResponse.json(); 
+                        
+                        if (statusData.state === 'SUCCESS') {
+                            isDone = true;
+                            showAlert("Export Complete! Your file is downloading.", 'success');
+                            
+                            window.location.href = `/static/uploads/${statusData.filename}`; 
+                            
+                        } else if (statusData.state === 'FAILURE') {
+                            isDone = true;
+                            showAlert("Something went wrong with the export.", 'danger');
+                        } else {
+                            await sleep(2000); 
+                        }
+                    } else {
+                        isDone = true;
+                        showAlert('Error while checking status', 'danger');
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error while exporting CSV:', error);
+                showAlert("Failed to start export.", 'danger');
+            } finally {
+                isExporting.value = false; 
+            }
         };
 
         onMounted(() => {
@@ -1298,7 +1374,7 @@ const App = {
 
         return {
             user, isLoading, isSubmitting, alertMessage, loginForm,
-            dashboardData, isExporting, triggerExport, showPassword, login, logout,
+            dashboardData, isExporting, showPassword, login, logout,
             authView, studentForm, handleFileUpload, registerStudent,
             companyForm, registerCompany, studentColumns, companyColumns,
             getFiveStudents, getFiveCompanies, getPendingCompanies, adminView,
@@ -1316,7 +1392,7 @@ const App = {
             studentProfile, getStudentProfile, selfUpdateStudent, studentSearchData, getStudentSearch,
             fetchAllDrives, applyDrive, fetchAllApplications, viewApplication, getStatusBadgeClass,
             companyApplicationColumns, viewStudentApplication, updateApplicationStatus, adminViewApplication,
-            appDetails, getAllApplications
+            appDetails, getAllApplications, exportCSV, sleep, minTime
         };
     }
 };

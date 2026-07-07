@@ -2,7 +2,7 @@ from functools import wraps
 from flask_login import current_user
 from flask import abort
 from .models import db, placement_drive
-from datetime import datetime
+from datetime import date
 
 def role_required(role):
     def decorator(func):
@@ -25,7 +25,7 @@ def role_required(role):
 
 def auto_close_expired_drives():
     expired_drives = placement_drive.query.filter(
-        placement_drive.deadline < datetime.now(),
+        placement_drive.deadline < date.today(),
         placement_drive.is_active == True
     ).all()
 

@@ -134,6 +134,7 @@ class application(db.Model):
     placement_drive_id = db.Column(db.Integer, db.ForeignKey('placement_drives.id'), nullable=False)
     applied_at = db.Column(db.Date, default=date.today())
     status = db.Column(db.String(20), default='Applied')
+    interview_at = db.Column(db.DateTime)
 
     __table_args__ = (db.UniqueConstraint('student_id', 'placement_drive_id', name='unique_application'),)
 
@@ -150,5 +151,6 @@ class application(db.Model):
             'applied_at': self.applied_at.isoformat() if self.applied_at else None,
             'status': self.status,
             'job_title': self.placement_drive.job_title if self.placement_drive else None,
-            'remarks': self.remarks
+            'remarks': self.remarks,
+            'interview_at': self.interview_at if self.interview_at else None
         }

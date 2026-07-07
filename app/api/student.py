@@ -5,6 +5,8 @@ from sqlalchemy.orm import aliased
 from app.models import db, user, company, student, placement_drive, application
 from app.utils import role_required
 from datetime import datetime
+from app.tasks import export_student_applications_csv
+from celery.result import AsyncResult
 from werkzeug.exceptions import RequestEntityTooLarge
 from werkzeug.utils import secure_filename
 import uuid
@@ -457,6 +459,28 @@ def apply(drive_id):
         db.session.rollback()
         print(e)
         return jsonify({"error": "Unexpected error! Application can't be submitted!"}), 403
+    
+@student_bp.route('/applications/export', methods=['POST'])
+@login_required
+@role_required('student')
+def trigger_export():
+    task = export_student_applications_csv.delay(current_user.id)
+    return jsonify({"task_id": task.id}), 202
+
+@student_bp.route('/export/status/<task_id>', methods=['GET'])
+@login_required
+def check_export_status(task_id):
+    task = AsyncResult(task_id, app=current_app.extensions["celery"])
+    
+    if task.state == 'PENDING':
+        return jsonify({"state": task.state, "message": "Task is waiting..."})
+    elif task.state == 'SUCCESS':
+        return jsonify({
+            "state": task.state, 
+            "filename": task.result.get("filename")
+        })
+    else:
+        return jsonify({"state": task.state, "error": str(task.info)}), 500
 
 
 

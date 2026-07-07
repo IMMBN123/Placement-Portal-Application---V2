@@ -195,6 +195,8 @@
                             </div>
                         </div>
                         <button @click="companyView = 'create_drive'" v-if="user.role === 'company' && companyView !== 'create_drive'" class="btn btn-outline-primary" style="color: white; border-color: white;">Create Drive</button>
+                        <button @click="exportCSV" v-if="user.role === 'company' && companyView === 'main'" class="btn btn-outline-primary" style="color: white; border-color: white;" :disabled="isExporting"><i class="bi bi-download" style="margin-right: 5px;"></i> {{ isExporting? 'Exporting ...' : 'Drive History'}}</button>
+                        <button @click="exportCSV" v-if="user.role === 'student' && studentView === 'all_applications'" class="btn btn-outline-primary" style="color: white; border-color: white;" :disabled="isExporting"><i class="bi bi-download" style="margin-right: 10px;"></i>{{ isExporting? 'Exporting ...' : 'Application History'}}</button>
                         <button @click="logout" class="btn btn-link text-decoration-none text-primary align-items-center" style="font-size: x-large;"><i class="bi bi-box-arrow-left" style="color: #f4f6f9;"><p style="font-size: 8px; text-transform: uppercase;">Logout</p></i></button>
                         <button @click="getCompanyProfile" v-if="user.role === 'company' && companyView === 'main'" class="btn btn-link text-decoration-none text-primary d-inline-flex align-items-center gap-2 p-0" style="font-size: x-large;"><i class="bi bi-person-circle" style="color: #f4f6f9;"></i></button>
                         <button @click="getStudentProfile" v-if="user.role === 'student' && studentView === 'main'" class="btn btn-link text-decoration-none text-primary d-inline-flex align-items-center gap-2 p-0" style="font-size: x-large;"><i class="bi bi-person-circle" style="color: #f4f6f9;"></i></button>
@@ -1044,7 +1046,7 @@
                                 <div style="display: flex; justify-content: center; gap: 5px;">
                                     <button @click="getStudentData(row)" type="button" class="btn btn-sm btn-primary" style="background-color: #5f8f8f; border-color: white;">Update</button>
                                     <button 
-                                        type="button" 
+                                        type="button"
                                         class="btn btn-sm btn-success" 
                                         :disabled="isSubmitting"
                                         @click="toggleBlacklist(row)">
@@ -1245,7 +1247,8 @@
                     <div v-else-if="adminView === 'view_drive'">
                         <div style="display: flex; justify-content: space-between;">
                             <button @click="adminView = 'all_search'" v-if="allSearchData && Object.keys(allSearchData).length > 0" class="btn btn-link text-decoration-none text-secondary d-inline-flex align-items-center gap-2 p-0"><i class="bi bi-arrow-left"></i>Search Data</button>
-                            <button @click="getAllDrives" class="btn btn-link text-decoration-none text-secondary d-inline-flex align-items-center gap-2 p-0"><i class="bi bi-arrow-left"></i>All Drives</button>
+                            <button @click="adminView = 'view_application'" v-if="appDetails.status" class="btn btn-link text-decoration-none text-secondary d-inline-flex align-items-center gap-2 p-0"><i class="bi bi-arrow-left"></i>Back to Application</button>
+                            <button @click="getAllDrives" v-else class="btn btn-link text-decoration-none text-secondary d-inline-flex align-items-center gap-2 p-0"><i class="bi bi-arrow-left"></i>All Drives</button>
                             <button @click="adminView = 'main'" class="btn btn-link text-decoration-none text-secondary d-inline-flex align-items-center gap-2 p-0"><i class="bi bi-arrow-left"></i>Back to Dashboard</button>
                         </div>
                         <view-drive
@@ -2247,29 +2250,39 @@
                             :profile="studentProfile">
                         </view-student>
                         <form @submit.prevent="updateApplicationStatus" class="row g-3 align-items-start">
-                            <div class="col-md-4" v-if="studentProfile.status !== 'Accepted' && studentProfile.status !== 'Rejected'">
+                            <div class="col-md-4">
                                 <label for="status" class="form-label fw-semibold text-secondary">Application Status:</label>
                                 
                                 <div v-if="studentProfile.status === 'Applied'">
                                     <select id="status" class="form-select shadow-sm" v-model="studentProfile.status" style="border-radius: 8px;">
                                         <option :value="studentProfile.status" disabled selected>{{ studentProfile.status }}</option>
-                                        <option value="Shortlisted">Shortlisted</option>
-                                        <option value="Rejected">Rejected</option>
+                                        <option value="Shortlisted">Shortlist</option>
+                                        <option value="Rejected">Reject</option>
                                     </select>
                                 </div>
                                 
-                                <div v-if="studentProfile.status === 'Shortlisted'">
+                                <div v-else-if="studentProfile.status === 'Shortlisted'">
                                     <select id="status" class="form-select shadow-sm" v-model="studentProfile.status" style="border-radius: 8px;">
                                         <option :value="studentProfile.status" disabled selected>{{ studentProfile.status }}</option>
-                                        <option value="Accepted">Accepted</option>
-                                        <option value="Rejected">Rejected</option>
+                                        <option value="Accepted">Accept</option>
+                                        <option value="Rejected">Reject</option>
+                                        <option value="Applied">Unshortlist</option>
+                                    </select>
+                                    <label class="form-label fw-semibold text-secondary" for="interview_time">Time for interview:</label>
+                                    <input class="form-control shadow-sm"  type="datetime-local" id="interview_time" :min="minTime" v-model="studentProfile.interview_at" required>
+                                </div>
+
+                                <div v-else>
+                                    <select id="status" class="form-select shadow-sm" v-model="studentProfile.status" style="border-radius: 8px;">
+                                        <option :value="studentProfile.status" disabled selected>{{ studentProfile.status }}</option>
+                                        <option value="Shortlisted">Shortlist</option>
                                     </select>
                                 </div>
                             </div>
 
-                            <div :class="studentProfile.status !== 'Accepted' && studentProfile.status !== 'Rejected' ? 'col-md-8' : 'col-md-12'">
+                            <div class="col-md-8">
                                 <div class="form-floating">
-                                    <textarea rows="2" 
+                                    <textarea rows="4" 
                                             id="remarks" 
                                             class="form-control shadow-sm" 
                                             v-model="studentProfile.remarks" 
