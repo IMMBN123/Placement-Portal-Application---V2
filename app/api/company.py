@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 from sqlalchemy.orm import aliased
+from app import cache
 from app.models import db, user, company, student, placement_drive, application
 from app.utils import role_required
 from datetime import datetime, date
@@ -83,6 +84,11 @@ def create_drive():
         db.session.add(drive)
         db.session.commit()
 
+        
+        cache.delete('admin_all_stats')
+        cache.delete('admin_pending_drives')
+        cache.delete('admin_all_search')
+
         return jsonify({"message":"Drive created successfully. Await admin approval!"}), 200
     
 @company_bp.route('/drives', methods = ['GET'])
@@ -140,6 +146,17 @@ def self_update_company():
         c.phone = phone
         c.description = description
         db.session.commit()
+
+        
+        cache.delete('admin_five_companies')
+        cache.delete('admin_all_companies')
+        cache.delete('admin_five_drives')
+        cache.delete('admin_all_drives')
+        cache.delete('admin_pending_drives')
+        cache.delete('admin_five_applications')
+        cache.delete('admin_all_applications')
+        cache.delete('admin_all_search')
+
         return jsonify({"message": f"Profile for company '{company_name}' updated successfully!"}), 200
 
     except Exception as e:
@@ -155,11 +172,22 @@ def close_drive(drive_id):
 
     drive.is_active = False
     db.session.commit()
+
+
+    cache.delete('admin_all_stats')
+    cache.delete('admin_five_drives')
+    cache.delete('admin_all_drives')
+    cache.delete('admin_pending_drives')
+    cache.delete('admin_five_applications')
+    cache.delete('admin_all_applications')
+    cache.delete('admin_all_search')
+
     return jsonify({"message": "Drive Closed successfully"}), 200
 
 @company_bp.route("/drives/<int:drive_id>/app-count", methods=["GET"])
 @login_required
 @role_required("company")
+@cache.cached(timeout=600, key_prefix='admin_five_students')
 def get_application_count(drive_id):
     application_count = application.query.join(placement_drive).filter(placement_drive.id == drive_id).count()
     return jsonify({"count": application_count}), 200
@@ -227,6 +255,15 @@ def update_app_status(app_id):
         app.interview_at = interview_time
 
         db.session.commit()
+
+        cache.delete('admin_all_stats')
+        cache.delete('admin_five_drives')
+        cache.delete('admin_all_drives')
+        cache.delete('admin_pending_drives')
+        cache.delete('admin_five_applications')
+        cache.delete('admin_all_applications')
+        cache.delete('admin_all_search')
+
         return jsonify({"message": f"Application Status was successfully updated to '{new_status}'"}), 200
     
     except Exception as e:

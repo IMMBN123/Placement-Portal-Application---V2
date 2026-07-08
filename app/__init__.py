@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, render_template, send_from_directory
 from flask_migrate import Migrate
 from flask_login import LoginManager
+from flask_caching import Cache
 from config import Config
 from app.models import db, user 
 import os
@@ -12,6 +13,8 @@ load_dotenv()
 login_manager = LoginManager()
 
 migrate = Migrate()
+
+cache = Cache()
 
 celery_app = None
 
@@ -37,6 +40,8 @@ def create_app():
     app.config.from_object(Config)
     
     celery_init_app(app)
+
+    cache.init_app(app)
 
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 

@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
 from sqlalchemy import or_
+from app import cache
 from sqlalchemy.orm import aliased
 from app.models import db, user, company, student, placement_drive, application
 from app.utils import role_required
@@ -10,6 +11,7 @@ admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 @admin_bp.route('/dashboard', methods=['GET'])
 @login_required
 @role_required('admin')
+@cache.cached(timeout=600, key_prefix='admin_all_stats')
 def get_dashboard_stats():
     student_count = student.query.join(user).filter_by(is_active=True).count()
     company_count = company.query.join(user).filter(user.is_active == True, company.is_approved == True, company.is_rejected == False).count()
@@ -73,6 +75,7 @@ def get_dashboard_stats():
 @admin_bp.route('/glance/companies', methods=['GET'])
 @login_required
 @role_required('admin')
+@cache.cached(timeout=600, key_prefix='admin_five_companies')
 def get_five_companies():
     companies = company.query.join(user).filter(user.is_active==True, company.is_approved==True).limit(5).all()
     company_data = [c.to_dict() for c in companies]
@@ -81,6 +84,7 @@ def get_five_companies():
 @admin_bp.route('/companies', methods=['GET'])
 @login_required
 @role_required('admin')
+@cache.cached(timeout=600, key_prefix='admin_all_companies')
 def get_all_companies():
     active_companies = company.query.join(user).filter(user.is_active==True, company.is_approved==True).all()
     blacklisted_companies = company.query.join(user).filter(user.is_deleted==False, company.is_blacklisted==True, company.is_approved==True).all()
@@ -90,6 +94,7 @@ def get_all_companies():
 @admin_bp.route('/pending/companies', methods=['GET'])
 @login_required
 @role_required('admin')
+@cache.cached(timeout=600, key_prefix='admin_pending_companies')
 def get_pending_companies():
     companies = company.query.join(user).filter(
         user.is_active == True,
@@ -111,6 +116,12 @@ def approve_company(company_id):
         c.is_approved = True
         c.is_rejected = False
         db.session.commit()
+
+        cache.delete('admin_all_stats')
+        cache.delete('admin_five_companies')
+        cache.delete('admin_all_companies')
+        cache.delete('admin_pending_companies')
+        cache.delete('admin_all_search')
         
         return jsonify({"message": f"'{c.company_name}' approved successfully."}), 200
     except Exception as e:
@@ -131,6 +142,10 @@ def reject_company(company_id):
         c.is_approved = False
         c.is_rejected = True
         db.session.commit()
+
+        cache.delete('admin_all_stats')
+        cache.delete('admin_pending_companies')
+        cache.delete('admin_all_search')
         
         return jsonify({"message": f"'{c.company_name}' rejected successfully."}), 200
     
@@ -169,6 +184,16 @@ def update_company(company_id):
         c.industry = industry
         c.website = website
         db.session.commit()
+
+        cache.delete('admin_five_companies')
+        cache.delete('admin_all_companies')
+        cache.delete('admin_five_drives')
+        cache.delete('admin_all_drives')
+        cache.delete('admin_pending_drives')
+        cache.delete('admin_five_applications')
+        cache.delete('admin_all_applications')
+        cache.delete('admin_all_search')
+
         return jsonify({"message": f"Profile for company '{company_name}' updated successfully!"}), 200
 
     except Exception as e:
@@ -192,7 +217,19 @@ def blacklist(user_id):
         elif user_to_blacklist.role == 'company' and user_to_blacklist.company:
             user_to_blacklist.company.is_blacklisted = not user_to_blacklist.company.is_blacklisted
             status = "blacklisted" if user_to_blacklist.company.is_blacklisted else "removed from blacklist"
+
         db.session.commit()
+        cache.delete('admin_all_stats')
+        cache.delete('admin_five_companies')
+        cache.delete('admin_all_companies')
+        cache.delete('admin_five_students')
+        cache.delete('admin_all_students')
+        cache.delete('admin_five_drives')
+        cache.delete('admin_all_drives')
+        cache.delete('admin_pending_drives')
+        cache.delete('admin_all_applications')
+        cache.delete('admin_five_applications')
+        cache.delete('admin_all_search')
         
         if user_to_blacklist.role == 'student':
             return jsonify({"message": f"Student '{user_to_blacklist.student.full_name}' {status} successfully"}), 200
@@ -207,6 +244,7 @@ def blacklist(user_id):
 @admin_bp.route('/glance/students', methods=['GET'])
 @login_required
 @role_required('admin')
+@cache.cached(timeout=600, key_prefix='admin_five_students')
 def get_five_students():
     students = student.query.join(user).filter_by(is_active=True).limit(5).all()
     student_data = [s.to_dict() for s in students]
@@ -215,6 +253,7 @@ def get_five_students():
 @admin_bp.route('/students', methods=['GET'])
 @login_required
 @role_required('admin')
+@cache.cached(timeout=600, key_prefix='admin_all_students')
 def get_all_students():
     active_students = student.query.join(user).filter_by(is_active=True).all()
     blacklisted_students = student.query.join(user).filter(user.is_deleted == False, student.is_blacklisted == True).all()
@@ -267,6 +306,15 @@ def update_student(student_id):
         s.cgpa = float(cgpa)
 
         db.session.commit()
+
+        cache.delete('admin_five_students')
+        cache.delete('admin_all_students')
+        cache.delete('admin_five_drives')
+        cache.delete('admin_all_drives')
+        cache.delete('admin_five_applications')
+        cache.delete('admin_all_applications')
+        cache.delete('admin_all_search')
+
         return jsonify({"message": f"Profile for student '{full_name}' updated successfully!"}), 200
 
     except ValueError:
@@ -279,6 +327,7 @@ def update_student(student_id):
 @admin_bp.route('/glance/drives', methods=['GET'])
 @login_required
 @role_required('admin')
+@cache.cached(timeout=600, key_prefix='admin_five_drives')
 def get_five_drives():
     drives = placement_drive.query.join(company).join(user).filter(placement_drive.is_approved == True,placement_drive.is_active == True, user.is_active == True).limit(5).all()
     drive_data = [s.to_dict() for s in drives]
@@ -287,6 +336,7 @@ def get_five_drives():
 @admin_bp.route('/drives', methods=['GET'])
 @login_required
 @role_required('admin')
+@cache.cached(timeout=600, key_prefix='admin_all_drives')
 def get_all_drives():
     ongoing_drives = placement_drive.query.join(company).join(user).filter(placement_drive.is_approved == True,placement_drive.is_active == True, user.is_active == True).all()
     closed_drives = placement_drive.query.join(company).join(user).filter(placement_drive.is_approved == True,placement_drive.is_active == False, user.is_active == True).all()
@@ -298,6 +348,7 @@ def get_all_drives():
 @admin_bp.route('/pending/drives', methods=['GET'])
 @login_required
 @role_required('admin')
+@cache.cached(timeout=600, key_prefix='admin_pending_drives')
 def get_pending_drives():
     drives = placement_drive.query.join(company).join(user).filter(
         placement_drive.is_approved == False,
@@ -320,6 +371,12 @@ def approve_drive(drive_id):
         d.is_approved = True
         d.is_rejected = False
         db.session.commit()
+
+        cache.delete('admin_all_stats')
+        cache.delete('admin_five_drives')
+        cache.delete('admin_all_drives')
+        cache.delete('admin_pending_drives')
+        cache.delete('admin_all_search')
         
         return jsonify({"message": f"Drive '{d.id}' approved successfully."}), 200
     except Exception as e:
@@ -340,6 +397,11 @@ def reject_drive(drive_id):
         d.is_rejected = True
         d.is_active = False
         db.session.commit()  
+
+        cache.delete('admin_all_stats')
+        cache.delete('admin_pending_drives')
+        cache.delete('admin_all_search')
+
         return jsonify({"message": f"Drive '{d.id}' rejected successfully."}), 200
     
     except Exception as e:
@@ -350,6 +412,7 @@ def reject_drive(drive_id):
 @admin_bp.route('/glance/applications', methods=["GET"])
 @login_required
 @role_required('admin')
+@cache.cached(timeout=600, key_prefix='admin_five_applications')
 def get_five_applications():
     student_user = aliased(user, name="student_user")
     company_user = aliased(user, name="company_user")
@@ -376,6 +439,7 @@ def get_five_applications():
 @admin_bp.route('/applications', methods=["GET"])
 @login_required
 @role_required('admin')
+@cache.cached(timeout=600, key_prefix='admin_all_applications')
 def get_all_applications():
 
     student_user = aliased(user, name="student_user")
@@ -440,6 +504,19 @@ def delete_user(id):
 
     try:
         db.session.commit()
+
+        cache.delete('admin_all_stats')
+        cache.delete('admin_five_companies')
+        cache.delete('admin_all_companies')
+        cache.delete('admin_five_students')
+        cache.delete('admin_all_students')
+        cache.delete('admin_five_drives')
+        cache.delete('admin_all_drives')
+        cache.delete('admin_pending_drives')
+        cache.delete('admin_all_applications')
+        cache.delete('admin_five_applications')
+        cache.delete('admin_all_search')
+
         return jsonify({"message": "User deactivated successfully."}), 200
         
     except Exception as e:
@@ -449,6 +526,7 @@ def delete_user(id):
 @admin_bp.route('/search/all', methods=['GET'])
 @login_required
 @role_required('admin')
+@cache.cached(timeout=60, key_prefix='admin_all_search', query_string=True)
 def global_search():
 
     query = request.args.get('q', '').strip()

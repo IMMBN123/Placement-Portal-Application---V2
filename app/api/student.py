@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 from sqlalchemy.orm import aliased
+from app import cache
 from app.models import db, user, company, student, placement_drive, application
 from app.utils import role_required
 from datetime import datetime
@@ -256,6 +257,16 @@ def update_profile():
         s.resume_link = resume_link
 
         db.session.commit()
+
+        cache.delete('admin_all_stats')
+        cache.delete('admin_five_students')
+        cache.delete('admin_all_students')
+        cache.delete('admin_five_drives')
+        cache.delete('admin_all_drives')
+        cache.delete('admin_five_applications')
+        cache.delete('admin_all_applications')
+        cache.delete('admin_all_search')
+
         return jsonify({"message": f"Profile for student '{full_name}' updated successfully!"}), 200
 
     except Exception as e:
@@ -452,6 +463,13 @@ def apply(drive_id):
 
         db.session.add(new_application)
         db.session.commit()
+
+        cache.delete('admin_all_stats')
+        cache.delete('admin_five_drives')
+        cache.delete('admin_all_drives')
+        cache.delete('admin_five_applications')
+        cache.delete('admin_all_applications')
+        cache.delete('admin_all_search')
 
         return jsonify({"message": "Application submitted successfully"}), 200
     
