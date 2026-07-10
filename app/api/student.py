@@ -1,7 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
 from sqlalchemy import or_
-from sqlalchemy.orm import aliased
 from app import cache
 from app.models import db, user, company, student, placement_drive, application
 from app.utils import role_required

@@ -9,7 +9,7 @@ import uuid
 import glob
 from datetime import date, timedelta, datetime
 from celery import shared_task
-from sqlalchemy import not_, func
+from sqlalchemy import func
 from app.models import db, user, company, student, placement_drive, application
 from sqlalchemy.orm import aliased
 
