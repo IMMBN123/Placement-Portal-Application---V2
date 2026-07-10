@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_user, logout_user, current_user, login_required
+from app import cache
 from app.models import db, user, company, student
 from werkzeug.exceptions import RequestEntityTooLarge
 from werkzeug.utils import secure_filename
@@ -115,6 +116,11 @@ def register_student():
             db.session.add(new_student)
             db.session.commit()
 
+            cache.delete('admin_all_stats')
+            cache.delete('admin_five_students')
+            cache.delete('admin_all_students')
+            cache.delete('admin_all_search')
+
             return jsonify({"message": "Registration successful!"}), 201
 
         except Exception as e:
@@ -154,6 +160,12 @@ def register_company():
         db.session.add(new_user)
         db.session.add(new_company)
         db.session.commit()
+
+        cache.delete('admin_all_stats')
+        cache.delete('admin_all_companies')
+        cache.delete('admin_pending_companies')
+        cache.delete('admin_five_students')
+        cache.delete('admin_all_search')
 
         return jsonify({'message': 'Registration successful! Awaiting admin approval'})
     
