@@ -144,7 +144,6 @@ def register_company():
             return jsonify({"error": "Email already registered. Please log in."}), 409
     
     try:
-        # Create new user and company profile
         new_user = user(email=email, role='company')
         new_user.set_password(password)
 

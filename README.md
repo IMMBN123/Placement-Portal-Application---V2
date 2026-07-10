@@ -15,3 +15,13 @@ Company Role: Hosts placement drives, reviews student applications, and updates 
 Student Role: Builds their profile, browses eligible placement drives, applies, and tracks their progress.
 
 Advanced Features: Automated daily reminders, monthly scheduled reports, and background CSV exports without slowing down the UI.
+
+# How to Run :
+
+1. Download all the packages in requirements.txt to your environment.
+2. Start your celery server either with docker(preferred) or your local shell.
+    * If docker: run `docker run -d -p 6379:6379 --name local-redis redis` while keeping the Docker engine running.
+    * For local shell: `sudo apt update`
+                       `sudo apt install redis-server`
+                       `redis-server`
+3. Run run.py and head to the webpage.

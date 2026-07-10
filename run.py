@@ -34,7 +34,6 @@ def cleanup():
         beat_process.terminate()
         beat_process.wait()
 
-# Don't forget to register the cleanup function!
 atexit.register(cleanup)
 
 if __name__ == "__main__":

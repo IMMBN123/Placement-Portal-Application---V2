@@ -4,7 +4,6 @@ from celery.schedules import crontab
 load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# Better to put uploads in static folder for Vue/CDN access
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads") 
 ALLOWED_EXTENSIONS = ["doc", "docx", "pdf", "png", "jpg", "jpeg", "webp"]
 MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5 MB
@@ -13,7 +12,7 @@ class Config:
     # Basic Flask Config
     SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret-key-if-env-is-missing")
     
-    # SQLAlchemy Config (Keeping your mad2.db name!)
+    # SQLAlchemy Config
     SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(BASE_DIR, "instance", "mad2.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
@@ -49,6 +48,7 @@ class Config:
                 "schedule": crontab(hour=9, minute=0),
             },
 
+            # JOB D: Runs only on the 1st day of every month at 9:00 AM
             "monthly-company-report": {
                 "task": "send_monthly_company_report",
                 "schedule": crontab(month_of_year=1, hour=9, minute=0),

@@ -102,7 +102,6 @@ def send_monthly_activity_report():
     last_day_of_prev_month = first_day_of_current_month - timedelta(days=1)
     first_day_of_prev_month = last_day_of_prev_month.replace(day=1)
 
-    # 2. Query the SQLite Database for the stats (Adjust model fields to match your DB)
     drives_conducted = placement_drive.query.join(company).join(user).filter(
         placement_drive.created_at >= first_day_of_prev_month,
         placement_drive.created_at <= last_day_of_prev_month,
@@ -172,7 +171,6 @@ def send_company_report():
     last_day_of_prev_month = first_day_of_current_month - timedelta(days=1)
     first_day_of_prev_month = last_day_of_prev_month.replace(day=1)
     
-    # --- Fetch Active Companies ---
     all_companies = company.query.join(user).filter(
         company.is_approved == True,
         company.is_rejected == False,
@@ -197,8 +195,6 @@ def send_company_report():
     emails_sent = 0
 
     for comp in all_companies:
-        
-        # Find all drives belonging to this specific company
         drives = placement_drive.query.filter_by(company_id=comp.user_id,).all()
         
         roles_data = []

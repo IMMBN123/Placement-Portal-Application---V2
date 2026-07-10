@@ -484,15 +484,14 @@ def delete_user(id):
     """Soft deletes a user account and updates their specific role profile."""
     user_to_delete = user.query.get_or_404(id)
 
-    # Safety check: Prevent the admin from deleting themselves
+    # Prevent the admin from deleting themselves
     if user_to_delete.id == current_user.id:
         return jsonify({"error": "You cannot delete your own admin account."}), 400
 
-    # Soft delete logic
+    # Soft delete
     user_to_delete.is_deleted = True
     user_to_delete.is_active = False
     
-    # ability to register email again
     user_to_delete.email = f"{user_to_delete.email}_deleted_{user_to_delete.id}"
     user_to_delete.password = "deleted"
     

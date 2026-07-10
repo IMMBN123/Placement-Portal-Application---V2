@@ -49,12 +49,10 @@ def create_app():
     migrate.init_app(app, db, render_as_batch=True)
     login_manager.init_app(app)
 
-    # Return JSON error instead of redirecting to a login page
     @login_manager.unauthorized_handler
     def unauthorized():
         return jsonify({"error": "Unauthorized. Please log in."}), 401
 
-    # Register Blueprints
     from app.api.auth import auth_bp
     from app.api.admin import admin_bp
     from app.api.company import company_bp
@@ -88,7 +86,6 @@ def create_app():
     with app.app_context():
         db.create_all()
 
-        # Admin creation
         admin_email = "admin@portal.com"
         admin_password = os.getenv("ADMIN_PASSWORD")
 
