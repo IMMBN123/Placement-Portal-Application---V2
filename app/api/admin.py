@@ -460,17 +460,24 @@ def get_all_applications():
     for app in all_apps:
         app_data = {**app.student.to_dict(), **app.to_dict(), **app.placement_drive.to_dict(), **app.placement_drive.company.to_dict()}
 
-    if student_user.is_active and company_user.is_active and company.is_approved:
-        if placement_drive.is_active:
-            current_apps.append(app_data)
-        else:
-            apps_for_closed_drives.append(app_data)
-    
-    elif not company_user.is_deleted and company.is_blacklisted and company.is_approved == True:
-        apps_for_blacklisted_companies.append(app_data)
+        s_student = app.student
+        s_user = s_student.user if s_student else None
+        drive = app.placement_drive
+        comp = drive.company if drive else None
+        c_user = comp.user if comp else None
 
-    elif student.is_blacklisted and not student_user.is_deleted:
-        apps_by_blacklisted_students.append(app_data)
+        if s_user and c_user and comp and drive:
+            if s_user.is_active and c_user.is_active and comp.is_approved:
+                if drive.is_active:
+                    current_apps.append(app_data)
+                else:
+                    apps_for_closed_drives.append(app_data)
+            
+            elif not c_user.is_deleted and comp.is_blacklisted and comp.is_approved:
+                apps_for_blacklisted_companies.append(app_data)
+
+            elif s_student.is_blacklisted and not s_user.is_deleted:
+                apps_by_blacklisted_students.append(app_data)
 
     return jsonify({"current_applications": current_apps,
                     "applications_for_closed_drives": apps_for_closed_drives,
@@ -652,20 +659,24 @@ def global_search():
     for app in all_apps:
         app_data = {**app.student.to_dict(), **app.to_dict(), **app.placement_drive.to_dict(), **app.placement_drive.company.to_dict()}
 
-    if student_user.is_active and company_user.is_active and company.is_approved:
-        if placement_drive.is_active:
-            current_apps.append(app_data)
-        else:
-            apps_for_closed_drives.append(app_data)
-    
-    elif not company_user.is_deleted and company.is_blacklisted and company.is_approved == True:
-        apps_for_blacklisted_companies.append(app_data)
+        s_student = app.student
+        s_user = s_student.user if s_student else None
+        drive = app.placement_drive
+        comp = drive.company if drive else None
+        c_user = comp.user if comp else None
 
-    elif student.is_blacklisted and not student_user.is_deleted:
-        apps_by_blacklisted_students.append(app_data)
-    
-    if not active_students and not blacklisted_students and not active_companies and not blacklisted_companies and not pending_companies and not ongoing_drives and not closed_drives and not drives_by_blaclisted_companies and not pending_drives and not current_apps and not apps_for_closed_drives and not apps_for_blacklisted_companies and not apps_by_blacklisted_students:
-        return jsonify({"error": "Search term has no match!"}), 404
+        if s_user and c_user and comp and drive:
+            if s_user.is_active and c_user.is_active and comp.is_approved:
+                if drive.is_active:
+                    current_apps.append(app_data)
+                else:
+                    apps_for_closed_drives.append(app_data)
+            
+            elif not c_user.is_deleted and comp.is_blacklisted and comp.is_approved:
+                apps_for_blacklisted_companies.append(app_data)
+
+            elif s_student.is_blacklisted and not s_user.is_deleted:
+                apps_by_blacklisted_students.append(app_data)
 
     return jsonify({
         "active_students": [s.to_dict() for s in active_students],
@@ -680,7 +691,7 @@ def global_search():
         "current_applications":  current_apps,
         "applications_for_closed_drives": apps_for_closed_drives,
         "applications_for_blacklisted_companies": apps_for_blacklisted_companies,
-        "applications_by_blacklisted_students": apps_by_blacklisted_students,
+        "applications_by_blacklisted_students": apps_by_blacklisted_students
     }), 200
 
 

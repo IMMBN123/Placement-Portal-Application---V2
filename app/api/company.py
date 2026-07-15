@@ -166,7 +166,7 @@ def self_update_company():
 @login_required
 @role_required("company")
 def close_drive(drive_id):
-    drive = placement_drive.query.get_or_404(drive_id)
+    drive = placement_drive.query.filter_by(id=drive_id, company_id=current_user.id).first_or_404()
 
     drive.is_active = False
     db.session.commit()
@@ -185,7 +185,6 @@ def close_drive(drive_id):
 @company_bp.route("/drives/<int:drive_id>/app-count", methods=["GET"])
 @login_required
 @role_required("company")
-@cache.cached(timeout=600, key_prefix='admin_five_students')
 def get_application_count(drive_id):
     application_count = application.query.join(placement_drive).filter(placement_drive.id == drive_id).count()
     return jsonify({"count": application_count}), 200

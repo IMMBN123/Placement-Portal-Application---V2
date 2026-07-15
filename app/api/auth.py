@@ -52,7 +52,7 @@ def login():
 @auth_bp.route('/logout', methods=['POST'])
 @login_required
 def logout():
-     logout_user
+     logout_user()
      return jsonify({"message": "Logged out successfully"}), 200
 
 @auth_bp.errorhandler(RequestEntityTooLarge)
